@@ -38,7 +38,7 @@
 
 # 📖 Introduction
 
-A starter template equipped with several interaction commands and one event.
+A blank template with one command and one event, This is a useful template if you want to quickly spin up a project.
 
 # 🏗 Development
 

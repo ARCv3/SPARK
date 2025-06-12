@@ -11,9 +11,6 @@ importers:
       '@discordx/importer':
         specifier: ^1.3.1
         version: 1.3.2
-      '@discordx/pagination':
-        specifier: ^3.5.5
-        version: 3.5.7(discord.js@14.19.3)
       discord.js:
         specifier: ^14.17.3
         version: 14.19.3
@@ -81,12 +78,6 @@ packages:
   '@discordx/internal@1.1.5':
     resolution: {integrity: sha512-Wpr1bh9GpTud7+fRlHUSihf2zrFzXgSC+8OCvwzODSH794mwWhKRYjGQKMgk3xfOmqiP8FTzs0/5GfYSbCOQ0Q==}
     engines: {node: '>=16.0.0', npm: '>=7.0.0'}
-
-  '@discordx/pagination@3.5.7':
-    resolution: {integrity: sha512-NRz9ea1oqa40AyNU/jIj2ikkN7OiL2XbPg7X6xl0ku36sx0gmm03p8jID8kteR1K8jcgjNdnOeJ65WgeIcmeLg==}
-    engines: {node: '>=16.0.0', npm: '>=7.0.0'}
-    peerDependencies:
-      discord.js: '>=14 || ^14.0.0-dev'
 
   '@isaacs/balanced-match@4.0.1':
     resolution: {integrity: sha512-yzMTt9lEb8Gv7zRioUilSglI0c0smZ9k5D65677DLWLtWJaXIS3CqcGyUFByYKlnUj6TkjLVs54fBl6+TiGQDQ==}
@@ -560,11 +551,6 @@ snapshots:
       glob: 11.0.3
 
   '@discordx/internal@1.1.5': {}
-
-  '@discordx/pagination@3.5.7(discord.js@14.19.3)':
-    dependencies:
-      discord.js: 14.19.3
-      lodash: 4.17.21
 
   '@isaacs/balanced-match@4.0.1': {}
 
