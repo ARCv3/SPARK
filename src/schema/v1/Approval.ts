@@ -1,4 +1,4 @@
-const mongoose = require('mongoose');
+import mongoose from 'mongoose';
 
 const ApprovalSchema = new mongoose.Schema({
   guildSnowflake: String,
@@ -9,4 +9,4 @@ const ApprovalSchema = new mongoose.Schema({
 
 const Approval = mongoose.model('Approval', ApprovalSchema);
 
-module.exports = Approval;
+export default Approval;

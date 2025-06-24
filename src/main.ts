@@ -2,8 +2,18 @@ import { dirname, importx } from "@discordx/importer";
 import type { Interaction, Message } from "discord.js";
 import { IntentsBitField } from "discord.js";
 import { Client } from "discordx";
+import mongoose from "mongoose";
+import { Logger } from "./logger/index.js";
+import Guild from "./schema/v1/Guild.js";
+import mongooseLong from 'mongoose-long'
 
-export const bot = new Client({
+mongooseLong(mongoose);
+
+const { Types: { Long, ObjectId} } = mongoose;
+
+export const clientLogger = new Logger("SPARK", 'debug');
+
+export const client = new Client({
   // To use only guild command
   // botGuilds: [(client) => client.guilds.cache.map((guild) => guild.id)],
 
@@ -19,53 +29,65 @@ export const bot = new Client({
   // Debug logs are disabled in silent mode
   silent: false,
 
-  // Configuration for @SimpleCommand
-  simpleCommand: {
-    prefix: "!",
-  },
+  logger: clientLogger,
+
 });
 
-bot.once("ready", () => {
+client.once("ready", async () => {
   // Make sure all guilds are cached
-  // await bot.guilds.fetch();
+  const guilds = await client.guilds.fetch();
+
+  if (guilds.size <= 0 ) {
+    console.log("No guilds found...")
+    return;
+  }
 
   // Synchronize applications commands with Discord
-  void bot.initApplicationCommands();
+  await client.initApplicationCommands();
 
-  // To clear all guild commands, uncomment this line,
-  // This is useful when moving from guild commands to global commands
-  // It must only be executed once
-  //
-  //  await bot.clearApplicationCommands(
-  //    ...bot.guilds.cache.map((g) => g.id)
-  //  );
+  // Connect to MongoDB
+  await mongoose
+    .connect(process.env.MONGODB_URI?? "none")
+    .then(() => clientLogger.info("Connected to Database!"))
+    .catch(() => { clientLogger.error("Error connecting to MongoDB")  })
 
-  console.log("Bot started");
+  guilds.forEach(( guild ) => {
+
+      const cachedGuilds = await Guild.find().exec();
+      
+      if (cachedGuilds.map(x => x.guildsnowflake?.toString()).includes(guild.id))
+        return;
+      
+      await 
+
+
+  })
+
+
+  clientLogger.info(`Logged in as ${client.user?.username}`);
+  clientLogger.info(`Shard IDs: ${client.shard?.ids}`);
+  clientLogger.info(`Recommended Shards: ${Math.round(guilds.size / 25000 )}`);
+  clientLogger.info(`Registered ${client.applicationCommands.length} application Commands`);
+  clientLogger.info(`Client is a member of ${guilds.size} guilds`)
 });
 
-bot.on("interactionCreate", (interaction: Interaction) => {
-  bot.executeInteraction(interaction);
-});
-
-bot.on("messageCreate", (message: Message) => {
-  void bot.executeCommand(message);
+client.on("interactionCreate", (interaction: Interaction) => {
+  client.executeInteraction(interaction);
 });
 
 async function run() {
-  // The following syntax should be used in the commonjs environment
-  //
-  // await importx(__dirname + "/{events,commands}/**/*.{ts,js}");
-
+  
   // The following syntax should be used in the ECMAScript environment
   await importx(`${dirname(import.meta.url)}/{events,commands}/**/*.{ts,js}`);
 
   // Let's start the bot
-  if (!process.env.BOT_TOKEN) {
-    throw Error("Could not find BOT_TOKEN in your environment");
+  if (!process.env.TOKEN) {
+    throw Error("Could not find TOKEN in your environment");
   }
 
   // Log in with your bot token
-  await bot.login(process.env.BOT_TOKEN);
+  await client.login(process.env.TOKEN);
+
 }
 
 void run();

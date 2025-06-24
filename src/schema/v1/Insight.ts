@@ -1,4 +1,4 @@
-const mongoose = require('mongoose');
+import mongoose from 'mongoose';
 
 const insightSchema = new mongoose.Schema({
   _id: String,
@@ -14,4 +14,4 @@ const insightSchema = new mongoose.Schema({
 
 const Insight = mongoose.model("Insight", insightSchema);
 
-module.exports = Insight;
+export default Insight;

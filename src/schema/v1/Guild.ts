@@ -1,5 +1,7 @@
-const mongoose = require('mongoose');
-require('mongoose-long')(mongoose);
+import mongoose from 'mongoose';
+import mongooseLong from 'mongoose-long'
+
+mongooseLong(mongoose);
 
 const { Types: { Long, ObjectId} } = mongoose;
 
@@ -14,4 +16,4 @@ const guildSchema = new mongoose.Schema({
 
 const Guild = mongoose.model("Guild", guildSchema, "Guilds");
 
-module.exports = Guild;
+export default Guild;

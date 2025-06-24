@@ -1,4 +1,4 @@
-const mongoose = require('mongoose');
+import mongoose from 'mongoose';
 
 const TranscriptSchema = new mongoose.Schema({
 
@@ -14,4 +14,4 @@ const TranscriptSchema = new mongoose.Schema({
 
 const Transcript = mongoose.model('Transcript', TranscriptSchema);
 
-module.exports = Transcript;
+export default Transcript;
