@@ -17,6 +17,9 @@ importers:
       discordx:
         specifier: ^11.12.2
         version: 11.12.4(discord.js@14.19.3)
+      dotenv:
+        specifier: ^17.1.0
+        version: 17.1.0
       mongoose:
         specifier: ^8.15.1
         version: 8.15.1
@@ -253,6 +256,10 @@ packages:
     engines: {node: '>=16.0.0', npm: '>=7.0.0'}
     peerDependencies:
       discord.js: '>=14 || ^14.0.0-dev'
+
+  dotenv@17.1.0:
+    resolution: {integrity: sha512-tG9VUTJTuju6GcXgbdsOuRhupE8cb4mRgY5JLRCh4MtGoVo3/gfGUtOMwmProM6d0ba2mCFvv+WrpYJV6qgJXQ==}
+    engines: {node: '>=12'}
 
   eastasianwidth@0.2.0:
     resolution: {integrity: sha512-I88TYZWc9XiYHRQ4/3c5rjjfgkjhLyW2luGIheGERbNQ6OY7yTybanSpDXZa8y7VUP9YmDcYa+eyq4ca7iLqWA==}
@@ -860,6 +867,8 @@ snapshots:
       '@discordx/internal': 1.1.5
       discord.js: 14.19.3
       lodash: 4.17.21
+
+  dotenv@17.1.0: {}
 
   eastasianwidth@0.2.0: {}
 
