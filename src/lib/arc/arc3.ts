@@ -15,8 +15,9 @@ export namespace Arc3 {
 
   export class Arc3 {
 
-    private readonly clientInstance;
-    public static readonly clientLogger =  new Logger("SPARK", 'debug');
+    public static clientInstance : Client;
+    private readonly clientInstance : Client;
+    public static readonly clientLogger = new Logger("SPARK", 'debug');
 
     /**
      * Creates a new instance of the Arc3 class.
@@ -24,7 +25,7 @@ export namespace Arc3 {
      */
     constructor() {
 
-      this.clientInstance = new Client({
+      Arc3.clientInstance = new Client({
 
         // To use only guild command
         // botGuilds: [(client) => client.guilds.cache.map((guild) => guild.id)],
@@ -47,6 +48,8 @@ export namespace Arc3 {
         logger: Arc3.clientLogger,
 
       });
+
+      this.clientInstance = Arc3.clientInstance;
 
       this.clientInstance.on('interactionCreate', this.onInteractionCreate);
       this.clientInstance.on('ready', this.onReady);
@@ -99,9 +102,11 @@ export namespace Arc3 {
 
       await this.initApplicationCommands();
 
-      await mongoose
+      mongoose
         .connect(process.env.MONGODB_URI?? "none")
-        .then( _ => Arc3.clientLogger.info("Connected to database!") )
+        .then( _ => {
+          Arc3.clientLogger.info("Connected to database!");
+        })
         .catch( e => Arc3.clientLogger.error("Error connecting to MongoDB") );
 
       guilds.forEach( async ( guild ) => {
