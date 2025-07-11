@@ -11,6 +11,9 @@ importers:
       '@discordx/importer':
         specifier: ^1.3.1
         version: 1.3.2
+      cacheables:
+        specifier: ^2.0.0
+        version: 2.0.0
       discord.js:
         specifier: ^14.17.3
         version: 14.19.3
@@ -209,6 +212,9 @@ packages:
   bson@6.10.4:
     resolution: {integrity: sha512-WIsKqkSC0ABoBJuT1LEX+2HEvNmNKKgnTAyd0fL8qzK4SH2i9NXg+t08YtdZp/V9IZ33cxe3iV4yM0qg8lMQng==}
     engines: {node: '>=16.20.1'}
+
+  cacheables@2.0.0:
+    resolution: {integrity: sha512-PLxJ2og8n0mNzXiEQ8ythJI6r/IP7hiOUZz7Cqhb+IoPuVHu5st+IvagQVzT8aEggDvHp3dhoHOLypNy8c+dbA==}
 
   chokidar@3.6.0:
     resolution: {integrity: sha512-7VT13fmjotKpGipCW9JEQAusEPE+Ei8nl6/g4FBAmIm0GOOLMua9NDDo/DWp0ZAxCr3cPq5ZpBqmPAQgDda2Pw==}
@@ -803,6 +809,8 @@ snapshots:
       fill-range: 7.1.1
 
   bson@6.10.4: {}
+
+  cacheables@2.0.0: {}
 
   chokidar@3.6.0:
     dependencies:
