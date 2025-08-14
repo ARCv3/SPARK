@@ -20,6 +20,7 @@ import mongooseLong from 'mongoose-long'
 import { useGuildConfig } from "../../hooks/useGuildConfig.js";
 import { useActiveModmails } from "../../hooks/useActiveModmails.js";
 import { Arc3 } from "../arc3.js";
+import { Locale, useTextContent } from "../../hooks/useTextContent.js";
 
 
 mongooseLong(mongoose);
@@ -40,6 +41,7 @@ export async function initModmailAsync(clientInstance: Client, guild: Guild, use
 
     const { getGuildConfig } = useGuildConfig().actions;
     const { actions: { buildCache }, states: {activeModmailsCache} } = useActiveModmails();
+    const { text } = useTextContent(Locale.EN).actions;
 
     const activeModmails = await buildCache();
     const guildConfig = await getGuildConfig(guild.id);
@@ -59,7 +61,7 @@ export async function initModmailAsync(clientInstance: Client, guild: Guild, use
         return false;
     
     const mailChannel = await guild.channels.create({
-        name: `Modmail-${user.username}`,
+        name: `${text('arc.modmail.channel.name')}-${user.username}`,
         type:  ChannelType.GuildText,
         parent: modmailCategory?.id
 
@@ -159,6 +161,9 @@ export async function SendAttachmentsAndMessageToWebhook(message: Message, webho
  * @param message The message to send the modmail select menu to.1
  */
 export async function SendModmailSelectMenu(message: Message<boolean>) {
+
+    const { text } = useTextContent(Locale.EN).actions;
+
     const selectMenuOptions = await BuildModmailSelectMenu();
     const selectMenuBuilder = new StringSelectMenuBuilder()
         .addOptions(selectMenuOptions)
@@ -168,14 +173,16 @@ export async function SendModmailSelectMenu(message: Message<boolean>) {
 
     await message.author.send({
         components: [buttonRow],
-        content: "Select a server to modmail: "
+        content: text('arc.modmail.selectmenu.placeholder')
     });
+
 }
 
 export function BuildModmailSentEmbed() {
 
     const embedBuilder = new EmbedBuilder();
     const self = Arc3.Arc3.clientInstance.user;
+    const { text } = useTextContent(Locale.EN).actions;
     
     if (!self)
         throw new Error("Client user is not initialized.")
@@ -185,10 +192,10 @@ export function BuildModmailSentEmbed() {
         iconURL: self.avatarURL()?? undefined
     });
 
-    embedBuilder.setDescription("Your modmail request was recieved! Please wait and a staff member will assist you shortly.");
+    embedBuilder.setDescription(text('arc.modmail.delivery.recieved.description'));
 
     embedBuilder.setFooter({
-        text: "v0.1 Thank you for using ARC",
+        text: text('arc.modmail.delivery.recieved.footer'),
         iconURL: self.avatarURL()?? undefined,
     });
 

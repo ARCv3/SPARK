@@ -2,7 +2,7 @@ import { ApplicationCommandOptionType, type CommandInteraction } from "discord.j
 import { Discord, Guard, Slash, SlashOption } from "discordx";
 import { useGuildConfig } from "../../hooks/useGuildConfig.js";
 import { Blacklist } from "../guards/blacklist.js";
-
+import { Locale, useTextContent } from "../../hooks/useTextContent.js";
 
 @Discord()
 export class ConfigCommands {
@@ -33,14 +33,17 @@ export class ConfigCommands {
     interaction: CommandInteraction) {
 
     const { setConfig } = useGuildConfig().actions;
+    const { text } = useTextContent(Locale.EN).actions;
 
-    setConfig(interaction.guildId?? "0", key, value);
-    interaction.reply({
-      content: "valid config",
+    await setConfig(interaction.guildId?? "0", key, value);
+
+    await interaction.reply({
+      content: text('arc.command.setconfig.sucess'),
       flags: [
         "Ephemeral"
       ]
-    })
+    });
+
   }
 
 }

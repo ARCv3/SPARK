@@ -1,0 +1,12 @@
+{
+    "arc.bot.name": "ARC",
+    "arc.blacklist": "您已被列入黑名单，无法使用该命令！",
+    "arc.command.setconfig.sucess": "配置已成功设置",
+    "arc.modmail.blacklisted": "您已被列入黑名单，无法使用 Modmail",
+    "arc.modmail.channel.name": "Modmail",
+    "arc.modmail.delivery.emoji.delivered": "📨",
+    "arc.modmail.delivery.emoji.failed": "🔴",
+    "arc.modmail.delivery.recieved.description": "您的 Modmail 请求已收到！请稍候，工作人员会尽快为您提供帮助。",
+    "arc.modmail.delivery.recieved.footer": "v0.1 感谢您使用 ARC",
+    "arc.modmail.selectmenu.placeholder": "选择服务器以发送 Modmail："
+}

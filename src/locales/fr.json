@@ -1,0 +1,12 @@
+{
+    "arc.bot.name": "ARC",
+    "arc.blacklist": "Vous êtes sur la liste noire et ne pouvez pas utiliser cette commande !",
+    "arc.command.setconfig.sucess": "La configuration a été définie avec succès",
+    "arc.modmail.blacklisted": "Vous êtes sur la liste noire et ne pouvez pas utiliser Modmail",
+    "arc.modmail.channel.name": "Modmail",
+    "arc.modmail.delivery.emoji.delivered": "📨",
+    "arc.modmail.delivery.emoji.failed": "🔴",
+    "arc.modmail.delivery.recieved.description": "Votre demande de modmail a bien été reçue ! Veuillez patienter, un membre du personnel vous aidera sous peu.",
+    "arc.modmail.delivery.recieved.footer": "v0.1 Merci d'utiliser ARC",
+    "arc.modmail.selectmenu.placeholder": "Sélectionnez un serveur pour envoyer un modmail : "
+}

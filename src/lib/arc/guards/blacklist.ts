@@ -1,6 +1,7 @@
 import { CommandInteraction } from "discord.js";
 import { GuardFunction } from "discordx";
 import { useBlacklist } from "../../hooks/useBlacklist.js";
+import { Locale, useTextContent } from "../../hooks/useTextContent.js";
 
 /**
  * Blacklist guard to prevent blacklisted users from using certain commands
@@ -15,6 +16,7 @@ export const Blacklist: GuardFunction<CommandInteraction> = async (
 )  => {
 
     const { getBlacklist } = useBlacklist().actions;
+    const { text } = useTextContent(Locale.EN).actions;
 
     const blacklistCondition = await getBlacklist(
         interactionParams.guildId?? "0", 
@@ -27,7 +29,7 @@ export const Blacklist: GuardFunction<CommandInteraction> = async (
     }
 
     interactionParams.reply({
-        content: "You are blacklisted from using that command!",
+        content: text('arc.blacklist'),
         flags: [
             "Ephemeral"
         ]

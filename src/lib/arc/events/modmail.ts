@@ -10,6 +10,7 @@ import mongoose from 'mongoose';
 import mongooseLong from 'mongoose-long'
 import { useActiveModmails } from "../../hooks/useActiveModmails.js";
 import { BuildModmailSentEmbed, initModmailAsync, SendAttachmentsAndMessageToWebhook, SendModmailSelectMenu } from "../util/ModmailUtils.js";
+import { Locale, useTextContent } from "../../hooks/useTextContent.js";
 
 mongooseLong(mongoose);
 
@@ -85,6 +86,7 @@ export class ModmailEvents {
         
         await interaction.deferReply()
         const { getBlacklist } = useBlacklist().actions;
+        const { text } = useTextContent(Locale.EN).actions;
 
         const selectedGuildId = interaction.values[0];
         const guild = await interaction.client.guilds.fetch(selectedGuildId);
@@ -93,7 +95,7 @@ export class ModmailEvents {
         
         if (isBlacklsted) {
             return await interaction.user.send({
-                content: "You are blacklisted from using modmail"
+                content: text('arc.modmail.blacklisted')
             });
         }
 
@@ -115,7 +117,6 @@ export class ModmailEvents {
             this.logger.error(e, "Failed to create modmail");      
         })
    
-
     }
 
     /**
@@ -176,13 +177,14 @@ export class ModmailEvents {
         
         // Get the active modmail webhook
         const webhook = await client.fetchWebhook(modmail.webhooksnowflake.toString());
+        const { text } = useTextContent(Locale.EN).actions;
         
         SendAttachmentsAndMessageToWebhook(message, webhook)
         .then(async () => {
-            await message.react("📨");
+            await message.react(text('arc.modmail.emoji.delivery.delivered'));
         }).catch(async (e) => {
             this.logger.error(e, "Error sending message in modmail: " + modmail._id.toString())
-            await message.react("🔴");
+            await message.react(text('arc.modmail.emoji.delivery.failed'));
         });
 
     }
