@@ -13,12 +13,12 @@ import {
     Webhook 
 } from "discord.js";
 
-import Modmail from "../schema/v1/Modmail.js";
+import Modmail from "../../schema/v1/Modmail.js";
 
 import mongoose from 'mongoose';
 import mongooseLong from 'mongoose-long'
-import { useGuildConfig } from "../hooks/useGuildConfig.js";
-import { useActiveModmails } from "../hooks/useActiveModmails.js";
+import { useGuildConfig } from "../../hooks/useGuildConfig.js";
+import { useActiveModmails } from "../../hooks/useActiveModmails.js";
 import { Arc3 } from "../arc3.js";
 
 

@@ -1,6 +1,6 @@
 import { CommandInteraction } from "discord.js";
 import { GuardFunction } from "discordx";
-import { useBlacklist } from "../hooks/useBlacklist.js";
+import { useBlacklist } from "../../hooks/useBlacklist.js";
 
 /**
  * Blacklist guard to prevent blacklisted users from using certain commands

@@ -1,14 +1,14 @@
 import { ArgsOf, Client, Discord, On, SelectMenuComponent } from "discordx";
 import { Arc3 } from "../arc3.js";
 import { EmbedBuilder, Message, StringSelectMenuInteraction } from "discord.js";
-import Modmail from "../schema/v1/Modmail.js";
+import Modmail from "../../schema/v1/Modmail.js";
 import { Logger } from "pino";
 
-import { useBlacklist } from "../hooks/useBlacklist.js";
+import { useBlacklist } from "../../hooks/useBlacklist.js";
 
 import mongoose from 'mongoose';
 import mongooseLong from 'mongoose-long'
-import { useActiveModmails } from "../hooks/useActiveModmails.js";
+import { useActiveModmails } from "../../hooks/useActiveModmails.js";
 import { BuildModmailSentEmbed, initModmailAsync, SendAttachmentsAndMessageToWebhook, SendModmailSelectMenu } from "../util/ModmailUtils.js";
 
 mongooseLong(mongoose);
@@ -145,7 +145,7 @@ export class ModmailEvents {
         
         // Get the active modmails
         const modmails = await this.getActiveModmails();
-        const usersWithOpenModmail = modmails.map(x => x.usersnowflake.toString());
+        const usersWithOpenModmail = modmails.map( (x:  InstanceType<typeof Modmail>) => x.usersnowflake.toString());
         
         // Guard that the user has an active modmail
         if (!usersWithOpenModmail.includes(message.author.id)) {
@@ -161,7 +161,7 @@ export class ModmailEvents {
         await this.ProcessModmailMessageToGuild(
             client,
             message,  
-            modmails.filter(x => x.usersnowflake.toString() === message.author.id)[0]
+            modmails.filter((x: InstanceType<typeof Modmail>)=> x.usersnowflake.toString() === message.author.id)[0]
         );
 
     }

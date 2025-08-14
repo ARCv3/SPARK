@@ -1,6 +1,6 @@
 import { Cacheables } from "cacheables"
 import GuildConfig from "../schema/v1/GuildConfig.js";
-import { Arc3 } from "../arc3.js";
+import { Arc3 } from "../arc/arc3.js";
 
 import mongoose from 'mongoose';
 import mongooseLong from 'mongoose-long'

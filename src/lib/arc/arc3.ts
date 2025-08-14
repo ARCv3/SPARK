@@ -4,7 +4,7 @@ import { GatewayDispatchEvents, IntentsBitField, Partials } from "discord.js";
 import { Client } from "discordx";
 import mongoose from "mongoose";
 import { Logger } from "../logger/index.js";
-import { default as GuildInfo } from "./schema/v1/Guild.js";
+import { default as GuildInfo } from "../schema/v1/Guild.js";
 import mongooseLong from 'mongoose-long'
 
 mongooseLong(mongoose);

@@ -1,6 +1,6 @@
 import { ApplicationCommandOptionType, type CommandInteraction } from "discord.js";
 import { Discord, Guard, Slash, SlashOption } from "discordx";
-import { useGuildConfig } from "../hooks/useGuildConfig.js";
+import { useGuildConfig } from "../../hooks/useGuildConfig.js";
 import { Blacklist } from "../guards/blacklist.js";
 
 
