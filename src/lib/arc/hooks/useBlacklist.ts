@@ -17,7 +17,9 @@ const logger = Arc3.Arc3.clientLogger.child("useBlacklist");
 
 export const useBlacklist = () => {
     if ( !blacklistCache.isCached("blacklist") ) {
-
+        buildCache().then( x => {
+            logger.info("Building blacklist cache...")
+        })
     }
 
     async function buildCache() {
@@ -33,10 +35,10 @@ export const useBlacklist = () => {
                 const blacklistKey = x.cmd?.toString()?? "undefined";
                 const userSnowflake = x.usersnowflake?.toString()?? "undefined";
 
-                if (!blacklist[guildSnowflake])
+                if (!(guildSnowflake in blacklist))
                     blacklist[guildSnowflake] = {}
 
-                if (!blacklist[guildSnowflake][userSnowflake])
+                if (!(userSnowflake in blacklist[guildSnowflake]))
                     blacklist[guildSnowflake][userSnowflake] = []
 
                 blacklist[guildSnowflake][userSnowflake].push(blacklistKey);
@@ -51,7 +53,11 @@ export const useBlacklist = () => {
 
     async function getBlacklist(guildSnowflake: string, userSnowflake: string, key: string) : Promise<boolean> {
         const blacklist = await buildCache();
-        return blacklist[guildSnowflake][userSnowflake].includes(key);
+        try {
+            return blacklist[guildSnowflake][userSnowflake].includes(key) || blacklist['0'][userSnowflake].includes(key);
+        } catch {
+            return false;
+        }
     }
 
     async function setBlacklist(guildSnowflake: string, userSnowflake: string, key: string) {

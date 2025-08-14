@@ -1,17 +1,25 @@
 import { ArgsOf, Client, Discord, On, SelectMenuComponent } from "discordx";
 import { Arc3 } from "../arc3.js";
-import { ActionRowBuilder, ComponentEmojiResolvable, Message, MessageActionRowComponentBuilder, StringSelectMenuBuilder, StringSelectMenuInteraction, StringSelectMenuOptionBuilder } from "discord.js";
+import { EmbedBuilder, Message, StringSelectMenuInteraction } from "discord.js";
 import Modmail from "../schema/v1/Modmail.js";
-import { Cacheables } from 'cacheables';
 import { Logger } from "pino";
 
-import { useGuildConfig } from "../hooks/useGuildConfig.js";
+import { useBlacklist } from "../hooks/useBlacklist.js";
+
+import mongoose from 'mongoose';
+import mongooseLong from 'mongoose-long'
+import { useActiveModmails } from "../hooks/useActiveModmails.js";
+import { BuildModmailSentEmbed, initModmailAsync, SendAttachmentsAndMessageToWebhook, SendModmailSelectMenu } from "../util/ModmailUtils.js";
+
+mongooseLong(mongoose);
+
+const { Types: { Long, ObjectId} } = mongoose;
 
 @Discord()
 export class ModmailEvents {
 
     private logger : Logger;
-    private modmailCache : Cacheables;
+    private activeModmail = useActiveModmails();
     
     /**
      * ModmailEvents class constructor
@@ -21,12 +29,7 @@ export class ModmailEvents {
     constructor() {
 
         this.logger = Arc3.Arc3.clientLogger.child("ModmailEvents");
-
-        this.modmailCache = new Cacheables({
-            log: false,
-            logTiming: false
-        });
-        
+    
         this.initCaches().then( _ => {
             this.logger.info("Cache initialized");
         });
@@ -46,17 +49,7 @@ export class ModmailEvents {
      * @returns {Promise<Array>} A promise that resolves to an array of active modmails.
      */
     private getActiveModmails = () =>  {
-        return this.modmailCache.cacheable(async () => {
-            return await Modmail.find()
-        }, 'activemodmails', { cachePolicy: 'cache-only'})
-    }
-
-    /**
-     * Clears the cached active modmails.
-     * This method is used to refresh the cache when needed.
-     */
-    private clearActiveModmails = () => {
-        this.modmailCache.delete('activemodmails');
+        return this.activeModmail.actions.buildCache();
     }
 
     /**
@@ -77,24 +70,51 @@ export class ModmailEvents {
         if (message.author.bot) 
             return;
 
-        this.ProcessModmailMessageRecieved(message)
+        this.ProcessModmailMessageRecieved(client, message)
           .catch( e => this.logger.error(e) );
 
     }
 
+    /**
+     * Event handler for interaction creation.
+     * It handles the modmail select menu interaction.
+     * @param {StringSelectMenuInteraction} interaction - The interaction object.
+     */
     @SelectMenuComponent({ id: "modmail.select.server"})
     async handleModmailSelectMenu(interaction: StringSelectMenuInteraction) {
         
-        await interaction.deferReply();
+        await interaction.deferReply()
+        const { getBlacklist } = useBlacklist().actions;
 
         const selectedGuildId = interaction.values[0];
         const guild = await interaction.client.guilds.fetch(selectedGuildId);
-
         
-    
+        const isBlacklsted = await getBlacklist(guild.id, interaction.user.id, "modmail");
+        
+        if (isBlacklsted) {
+            return await interaction.user.send({
+                content: "You are blacklisted from using modmail"
+            });
+        }
 
+        initModmailAsync(
+            interaction.client, 
+            guild, 
+            interaction.user
+        ).then(async (success) => {
 
+            if (!success)
+                throw new Error("Modmail init unsucessfull")
 
+            await interaction.editReply({
+                embeds: [BuildModmailSentEmbed()]
+                // TODO: close button
+            });
+        })
+        .catch(e => {
+            this.logger.error(e, "Failed to create modmail");      
+        })
+   
 
     }
 
@@ -103,10 +123,10 @@ export class ModmailEvents {
      * It checks if the message is in a DM channel and processes it accordingly.
      * @param {Message} message - The message object to process.
      */
-    private async ProcessModmailMessageRecieved(this: ModmailEvents, message: Message) {
+    private async ProcessModmailMessageRecieved(this: ModmailEvents, client: Client, message: Message) {
 
         if (message.channel.isDMBased())
-            return await this.ProcessModmailDmMessageRecieved(message);
+            return await this.ProcessModmailDmMessageRecieved(client, message);
 
     }
 
@@ -116,20 +136,33 @@ export class ModmailEvents {
      * If no active modmail is found, it handles the creation of a new modmail.
      * @param {Message} message - The message object to process.
      */
-    private async ProcessModmailDmMessageRecieved(this: ModmailEvents, message: Message) {
+    private async ProcessModmailDmMessageRecieved(this: ModmailEvents, client: Client, message: Message) {
+
+        // We need to guard certain dm messages to save performance. 
+        // If it is from a bot we can safely ignore
+        if (message.author.bot)
+            return;
         
+        // Get the active modmails
         const modmails = await this.getActiveModmails();
-
-        this.logger.info(modmails)
-
-        if (modmails.map(x => x.usersnowflake.toString()).includes(message.author.id))
-            await this.ProcessModmailMessageToGuild(
-                message,  
-                modmails.filter(x => x.usersnowflake.toString() === message.author.id)[0]
-            );
-
-        else
+        const usersWithOpenModmail = modmails.map(x => x.usersnowflake.toString());
+        
+        // Guard that the user has an active modmail
+        if (!usersWithOpenModmail.includes(message.author.id)) {
             await this.HandleNewModmail(message);
+            return;
+        }
+        
+        if (message.content.toLowerCase() === "close session")
+            // TODO Handle close modmail
+            return
+
+        // We have established the user has an active modmail, is not a bot, and does not wish to close the session
+        await this.ProcessModmailMessageToGuild(
+            client,
+            message,  
+            modmails.filter(x => x.usersnowflake.toString() === message.author.id)[0]
+        );
 
     }
 
@@ -139,9 +172,18 @@ export class ModmailEvents {
      * @param {Message} message - The message object to process.
      * @param {any} modmail - The modmail object associated with the user.
      */
-    private async ProcessModmailMessageToGuild(this: ModmailEvents, message: Message, modmail: any) {
+    private async ProcessModmailMessageToGuild(this: ModmailEvents, client: Client, message: Message, modmail: InstanceType<typeof Modmail>) {
         
-        this.logger.info("Send modmail to guild");
+        // Get the active modmail webhook
+        const webhook = await client.fetchWebhook(modmail.webhooksnowflake.toString());
+        
+        SendAttachmentsAndMessageToWebhook(message, webhook)
+        .then(async () => {
+            await message.react("📨");
+        }).catch(async (e) => {
+            this.logger.error(e, "Error sending message in modmail: " + modmail._id.toString())
+            await message.react("🔴");
+        });
 
     }
 
@@ -155,65 +197,11 @@ export class ModmailEvents {
         if (!(message.content.includes("mod") || message.content.includes("mail")))
             return;
 
-        this.logger.info("Create new Modmail");
+        this.logger.info("Creating new Modmail");
 
-        const selectMenuOptions = await this.BuildModmailSelectMenu();
-        const selectMenuBuilder = new StringSelectMenuBuilder()
-            .addOptions(selectMenuOptions)
-            .setCustomId("modmail.select.server");
-        const buttonRow = new ActionRowBuilder<MessageActionRowComponentBuilder>()
-            .addComponents(selectMenuBuilder);
-
-        await message.author.send({
-            components: [buttonRow],
-            content: "Select a server to modmail: "
-        })
+        await SendModmailSelectMenu(message);
 
     }   
 
-    /**
-     * Builds a select menu with options for each server that has modmail enabled.
-     * It fetches the guilds from the client and checks their configurations.
-     * @returns {Promise<Array>} A promise that resolves to an array of select menu options.
-     */
-    private async BuildModmailSelectMenu(this: ModmailEvents) {
-
-        const guilds = await Arc3.Arc3.clientInstance.guilds.cache;
-        const { buildCache } = useGuildConfig().actions;
-        const guildConfigs = await buildCache();
-        
-        const selectMenuOptions = [];
-        
-        for ( const [guildId, guild] of guilds) {
-
-            if (!(guild.id in guildConfigs))
-                continue;
-
-            if (!("modmailchannel" in guildConfigs[guild.id]))
-                continue;
-
-            const fetchedGuild = await guild.fetch();
-            const emojis = await fetchedGuild.emojis.fetch();
-            const emoji = emojis.find( x => x.name === "arc_icon");
-
-            const option = new StringSelectMenuOptionBuilder()
-                .setEmoji(emoji ? {name: emoji.name, id: emoji.id, animated: emoji.animated} as ComponentEmojiResolvable :  {})
-                .setDefault(false)
-                .setLabel(guild.name)
-                .setValue(guild.id)
-                .setDescription(
-                    fetchedGuild.description
-                    ? (fetchedGuild.description.length > 90 
-                        ? fetchedGuild.description.substring(0, 90) + "..."
-                        : fetchedGuild.description )
-                    : "..."
-                );
-
-            selectMenuOptions.push(option.toJSON());
-
-        }
-
-        return selectMenuOptions;
-    }
-
 }
+
