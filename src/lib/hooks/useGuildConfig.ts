@@ -65,7 +65,7 @@ export const useGuildConfig = () => {
 
     async function getConfig(guildSnowflake: string, configKey: string) {
         const config = await buildCache();
-        return config[guildSnowflake][configKey];
+        return config[guildSnowflake]?.[configKey];
     }
 
     async function getGuildConfig(guildSnowflake: string) {
