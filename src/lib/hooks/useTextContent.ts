@@ -1,12 +1,15 @@
 import { readdirSync, readFileSync } from "fs";
 
 export enum Locale {
-    EN = 'en'
+    EN = 'en',
+    FR = 'fr',
+    ZH = 'zh'
 }
 
 const translationFiles : Record<string, Translations> = {}
 
-for (const locale in Locale) {
+for (let locale in Locale) {
+    locale = locale.toLowerCase();
     translationFiles[locale] = JSON.parse(readFileSync(`./src/locales/${locale}.json`).toString()) as Translations;
 }
 
@@ -14,8 +17,19 @@ export const useTextContent = (locale: Locale) => {
 
     const translations = translationFiles[locale];
 
-    function text(code: keyof Translations) {
-        return translations[code];
+    function text(code: keyof Translations, ...args: string[]): string {
+        
+        let textContent = translations[code];
+        const argsRegexp = /{\d}/g
+        
+        const results = textContent.match(argsRegexp);
+
+        results?.forEach(x => {
+            const index = parseInt(x.replace(/[{}]/g, ''));
+            textContent = textContent.replace(x, args[index]);
+        });
+
+        return textContent;
     }
 
     return {
