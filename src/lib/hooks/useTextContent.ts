@@ -27,10 +27,12 @@ export const useTextContent = (locale: Locale) => {
         
         const results = textContent.match(argsRegexp);
 
-        results?.forEach((x : string) => {
-            const index = parseInt(x.replace(/[{}]/g, ''));
-            textContent = textContent.replace(x, args[index].toString());
-        });
+        if (results) {
+            results?.forEach((x : string) => {
+                const index = parseInt(x.replace(/[{}]/g, ''));
+                textContent = textContent.replace(x, args[index].toString());
+            })
+        }
 
         return textContent;
     }
@@ -78,7 +80,5 @@ export interface Translations {
     'arc.modmail.menu.footer': string; // ARC v{0} - Modmail
     'arc.modmail.menu.select.placeholder': string; // "Select a server to modmail: "
     'arc.modmail.menu.title': string; // Modmail
-    
-    
 
 }
