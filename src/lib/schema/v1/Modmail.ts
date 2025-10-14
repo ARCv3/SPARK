@@ -10,7 +10,7 @@ const ModmailSchema = new mongoose.Schema({
     channelsnowflake: Long,
     webhooksnowflake: Long,
     usersnowflake: Long
-});
+}, { timestamps: true });
 
 const Modmail = mongoose.model("Modmail", ModmailSchema);
 

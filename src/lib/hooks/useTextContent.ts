@@ -30,7 +30,7 @@ export const useTextContent = (locale: Locale) => {
         if (results) {
             results?.forEach((x : string) => {
                 const index = parseInt(x.replace(/[{}]/g, ''));
-                textContent = textContent.replace(x, args[index].toString());
+                textContent = textContent.replace(x, args[index]);
             })
         }
 
