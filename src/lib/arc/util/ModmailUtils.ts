@@ -1,5 +1,8 @@
 import { 
+    ActionRow,
     ActionRowBuilder, 
+    ButtonBuilder, 
+    ButtonStyle, 
     ChannelType, 
     Client, 
     ComponentEmojiResolvable,
@@ -9,6 +12,7 @@ import {
     MessageActionRowComponentBuilder,
     StringSelectMenuBuilder, 
     StringSelectMenuOptionBuilder,
+    TextChannel,
     User,
     Webhook 
 } from "discord.js";
@@ -21,6 +25,7 @@ import { useGuildConfig } from "../../hooks/useGuildConfig.js";
 import { useActiveModmails } from "../../hooks/useActiveModmails.js";
 import { Arc3 } from "../arc3.js";
 import { Locale, useTextContent } from "../../hooks/useTextContent.js";
+import { title } from "process";
 
 
 mongooseLong(mongoose);
@@ -37,7 +42,7 @@ const { Types: { Long, ObjectId} } = mongoose;
  * @returns A promise that resolves to true if modmail was successfully initialized, false otherwise.
  * 
  */
-export async function initModmailAsync(clientInstance: Client, guild: Guild, user: User) : Promise<boolean> {
+export async function initModmailAsync(clientInstance: Client, guild: Guild, user: User) : Promise<InstanceType<typeof Modmail> | undefined> {
 
     const { getGuildConfig } = useGuildConfig().actions;
     const { actions: { buildCache }, states: {activeModmailsCache} } = useActiveModmails();
@@ -46,11 +51,11 @@ export async function initModmailAsync(clientInstance: Client, guild: Guild, use
     const activeModmails = await buildCache();
     const guildConfig = await getGuildConfig(guild.id);
 
-    if (activeModmails.map(x => x.usersnowflake.toString()).includes(user.id))
-        return false;
+    if (activeModmails.map(x => x.usersnowflake?.toString()).includes(user.id))
+        return undefined;
 
     if (!("modmailchannel" in guildConfig))
-        return false;
+        return undefined;
 
     const modmailCategorySnowflake = guildConfig["modmailchannel"];
     const modmailCategory = await guild.channels.fetch(modmailCategorySnowflake, {
@@ -58,7 +63,7 @@ export async function initModmailAsync(clientInstance: Client, guild: Guild, use
     });
 
     if (modmailCategory?.type !== ChannelType.GuildCategory)
-        return false;
+        return undefined;
     
     const mailChannel = await guild.channels.create({
         name: `${text('arc.modmail.channel.name')}-${user.username}`,
@@ -81,7 +86,7 @@ export async function initModmailAsync(clientInstance: Client, guild: Guild, use
     await modmail.save();
     activeModmailsCache.clear();
 
-    return true;
+    return modmail;
     
 }
 
@@ -173,8 +178,72 @@ export async function SendModmailSelectMenu(message: Message<boolean>) {
 
     await message.author.send({
         components: [buttonRow],
-        content: text('arc.modmail.selectmenu.placeholder')
+        content: text('arc.modmail.menu.select.placeholder')
     });
+
+}
+
+export async function BuildModmailMenuEmbed(clientInstance: Client, modmail: InstanceType<typeof Modmail>) {
+
+    const embedBuilder = new EmbedBuilder();
+    const { text } = useTextContent(Locale.EN).actions;
+
+    const user = await clientInstance.users.fetch(modmail.usersnowflake?.toString()?? "0", {
+        cache: false
+    });
+
+    const embedStrings = {
+        footer: text('arc.modmail.menu.footer', Arc3.Arc3.clientVersion),
+        title: text('arc.modmail.menu.title'),
+        description: text('arc.modmail.menu.description', user.id.toString()),
+        buttons: {
+            save: {
+                text: text('arc.modmail.menu.button.save'),
+                emoji: text('arc.modmail.menu.button.save.emoji')
+            },
+            ban: {
+                text: text('arc.modmail.menu.button.ban'),
+                emoji: text('arc.modmail.menu.button.ban.emoji')
+            },
+            ping: {
+                text: text('arc.modmail.menu.button.ping'),
+                emoji: text('arc.modmail.menu.button.ping.emoji')
+            }
+        }
+    }
+
+    embedBuilder.setTimestamp(new Date());
+    embedBuilder.setFooter({
+        text: embedStrings.footer,
+        iconURL: clientInstance.user?.avatarURL() ?? undefined
+    });
+    
+    embedBuilder.setTitle(embedStrings.title);
+    embedBuilder.setDescription(embedStrings.description);
+
+    const buttonRow = new ActionRowBuilder<MessageActionRowComponentBuilder>()
+        .addComponents(
+            new ButtonBuilder()
+                .setCustomId(`modmail.save.${modmail._id?.toString()}`)
+                .setStyle(ButtonStyle.Secondary)
+                .setEmoji(embedStrings.buttons.save.emoji)
+                .setLabel(embedStrings.buttons.save.text),
+            new ButtonBuilder()
+                .setCustomId(`modmail.ban.${modmail._id?.toString()}`)
+                .setStyle(ButtonStyle.Danger)
+                .setEmoji(embedStrings.buttons.ban.emoji)
+                .setLabel(embedStrings.buttons.ban.text),
+            new ButtonBuilder()
+                .setCustomId(`modmail.ping.${modmail._id?.toString()}`)
+                .setStyle(ButtonStyle.Success)
+                .setEmoji(embedStrings.buttons.ping.emoji)
+                .setLabel(embedStrings.buttons.ping.text)
+    );
+
+    return {
+        embeds: [embedBuilder.toJSON()],
+        components: [buttonRow]
+    }
 
 }
 
@@ -202,5 +271,4 @@ export function BuildModmailSentEmbed() {
     embedBuilder.setTimestamp(new Date());
 
     return embedBuilder.data;
-
 }
