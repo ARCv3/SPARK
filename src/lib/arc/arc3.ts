@@ -6,6 +6,7 @@ import mongoose from "mongoose";
 import { Logger } from "../logger/index.js";
 import { default as GuildInfo } from "../schema/v1/Guild.js";
 import mongooseLong from 'mongoose-long'
+import * as packageJson from '../../../package.json' with { type: 'json'};
 
 mongooseLong(mongoose);
 const { Types: { Long, ObjectId} } = mongoose;
@@ -18,6 +19,7 @@ export namespace Arc3 {
     public static clientInstance : Client;
     private readonly clientInstance : Client;
     public static readonly clientLogger = new Logger("SPARK", 'debug');
+    public static readonly clientVersion = packageJson.version;
 
     /**
      * Creates a new instance of the Arc3 class.
