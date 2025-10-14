@@ -45,31 +45,6 @@ jest.mock('fs', () => ({
 import { useTextContent, Locale, Translations } from '../useTextContent';
 
 describe('useTextContent', () => {
-  const mockTranslations: Translations = {
-    'arc.bot.name': 'ARC',
-    'arc.blacklist': 'You are blacklisted from using that command!',
-    'arc.command.setconfig.sucess': 'Config has been successfully set',
-    'arc.modmail.blacklisted': 'You are blacklisted from using modmail',
-    'arc.modmail.channel.name': 'Modmail',
-    'arc.modmail.delivery.emoji.delivered': '📨',
-    'arc.modmail.delivery.emoji.failed': '🔴',
-    'arc.modmail.delivery.recieved.description': 'Your modmail request was received! Please wait and a staff member will assist you shortly.',
-    'arc.modmail.delivery.recieved.footer': 'v0.1 Thank you for using ARC',
-    'arc.modmail.selectmenu.placeholder': 'Select a server to modmail: ',
-  };
-
-  const mockTranslationsFr: Translations = {
-    'arc.bot.name': 'ARC',
-    'arc.blacklist': 'Vous êtes sur liste noire pour cette commande!',
-    'arc.command.setconfig.sucess': 'La configuration a été définie avec succès',
-    'arc.modmail.blacklisted': 'Vous êtes sur liste noire pour le modmail',
-    'arc.modmail.channel.name': 'Modmail',
-    'arc.modmail.delivery.emoji.delivered': '📨',
-    'arc.modmail.delivery.emoji.failed': '🔴',
-    'arc.modmail.delivery.recieved.description': 'Votre demande de modmail a été reçue! Veuillez patienter, un membre du personnel vous aidera sous peu.',
-    'arc.modmail.delivery.recieved.footer': 'v0.1 Merci d\'utiliser ARC',
-    'arc.modmail.selectmenu.placeholder': 'Sélectionnez un serveur pour le modmail: ',
-  };
 
   beforeEach(() => {
     // Reset all mocks
@@ -146,8 +121,14 @@ describe('useTextContent', () => {
         
       });
 
+      it('should return code if translation key not found', () => {
+        const result = useTextContent(Locale.EN);
+        const textResult = result.actions.text('non.existent.key' as keyof Translations);
+        expect(textResult).toBe('non.existent.key');
+      });
+
     });
 
   });
-  
+
 });
