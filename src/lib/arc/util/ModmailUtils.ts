@@ -10,6 +10,7 @@ import {
     Guild, 
     Message, 
     MessageActionRowComponentBuilder,
+    MessageComponentInteraction,
     StringSelectMenuBuilder, 
     StringSelectMenuOptionBuilder,
     TextChannel,
@@ -26,6 +27,7 @@ import { useActiveModmails } from "../../hooks/useActiveModmails.js";
 import { Arc3 } from "../arc3.js";
 import { Locale, useTextContent } from "../../hooks/useTextContent.js";
 import { title } from "process";
+import { Logger } from "pino";
 
 
 mongooseLong(mongoose);
@@ -271,4 +273,49 @@ export function BuildModmailSentEmbed() {
     embedBuilder.setTimestamp(new Date());
 
     return embedBuilder.data;
+}
+
+export async function TryCleanupModmail(interaction: MessageComponentInteraction, e: any, logger: Logger) {
+    const recentTimestamp = new Date();
+    recentTimestamp.setSeconds(recentTimestamp.getSeconds() - 30);
+
+    const modmails = await Modmail.find({
+        usersnowflake: Long.fromString(interaction.user.id),
+        createdAt: { $gte: recentTimestamp }
+    });
+
+    const modmail = modmails[0];
+
+    if (modmail) {
+
+        // Delete the channel (also deletes the webhook)
+        const channel = await interaction.client.channels.fetch(modmail.channelsnowflake?.toString() ?? "0");
+
+        if (channel) {
+            await channel.delete("Failed modmail creation cleanup").catch(e => {
+                logger.error(e, "Failed to delete modmail channel after failed creation");
+            });
+        }
+
+        // Send a message to the user
+        await interaction.user.send({
+            embeds: [
+                new EmbedBuilder()
+                    .setTitle("Modmail Failed")
+                    .setDescription("Your modmail failed to create. Please try again later.")
+                    .setColor("Red")
+            ]
+        }).catch(e => {
+            logger.error(e, "Failed to send modmail failed message to user");
+        });
+
+
+        // Delete the modmail
+        await modmail.deleteOne().catch(e => {
+            logger.error(e, "Failed to delete modmail after failed creation");
+        });
+
+    }
+
+    logger.error(e, "Failed to create modmail");
 }
