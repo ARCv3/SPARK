@@ -1,5 +1,5 @@
 import { Logger } from "pino";
-import { useActiveModmails } from "../../hooks/useActiveModmails.js";
+import { useActiveModmails } from "../hooks/useActiveModmails.js";
 import { Arc3 } from "../arc3.js";
 
 

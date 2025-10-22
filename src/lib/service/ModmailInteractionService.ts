@@ -1,10 +1,11 @@
 import { Logger } from "pino";
 import { ModmailRepo } from "../repositories/ModmailRepo.js";
 import { Arc3 } from "../arc3.js";
-import { useBlacklist } from "../../hooks/useBlacklist.js";
-import { Locale, useTextContent } from "../../hooks/useTextContent.js";
-import { BuildModmailMenuEmbed, BuildModmailSentEmbed, initModmailAsync, TryCleanupModmail } from "../util/ModmailUtils.js";
-import { StringSelectMenuInteraction, TextChannel } from "discord.js";
+import { useBlacklist } from "../hooks/useBlacklist.js";
+import { Locale, useTextContent } from "../hooks/useTextContent.js";
+import { BuildModmailMenuEmbed, initModmailAsync, TryCleanupModmail } from "../util/ModmailUtils.js";
+import { ButtonInteraction, StringSelectMenuInteraction, TextChannel } from "discord.js";
+import { ModmailSentEmbed } from "../../ui/ModmailUi.js";
 
 
 export class ModmailInteractionService {
@@ -48,7 +49,7 @@ export class ModmailInteractionService {
             }
 
             await interaction.editReply({
-                embeds: [BuildModmailSentEmbed()]
+                embeds: [ModmailSentEmbed()]
                 // TODO: close button
             });
 
@@ -68,5 +69,16 @@ export class ModmailInteractionService {
         });
     }
    
+
+    public async ProcessModmailSaveButton(interaction: ButtonInteraction) {
+        
+        const modmailId = interaction.customId.split(".")[2];
+        const modmails = await this.modmailRepo.getActiveModmails();
+
+        await interaction.editReply({
+            content: "Saving modmail..."
+        });
+
+    }
 
 }

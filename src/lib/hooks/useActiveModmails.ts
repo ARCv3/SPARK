@@ -1,5 +1,5 @@
 import { Cacheables } from "cacheables";
-import { Arc3 } from "../arc/arc3.js"
+import { Arc3 } from "../arc3.js"
 import Modmail from "../schema/v1/Modmail.js";
 
 const activeModmailsCache = new Cacheables({

@@ -3,10 +3,10 @@ import type { Guild, GuildMember, Interaction, Message } from "discord.js";
 import { GatewayDispatchEvents, IntentsBitField, Partials } from "discord.js";
 import { Client } from "discordx";
 import mongoose from "mongoose";
-import { Logger } from "../logger/index.js";
-import { default as GuildInfo } from "../schema/v1/Guild.js";
+import { Logger } from "./logger/index.js";
+import { default as GuildInfo } from "./schema/v1/Guild.js";
 import mongooseLong from 'mongoose-long'
-import * as packageJson from '../../../package.json' with { type: 'json'};
+import * as packageJson from '../../package.json' with { type: 'json'};
 
 mongooseLong(mongoose);
 const { Types: { Long, ObjectId} } = mongoose;
@@ -67,14 +67,17 @@ export namespace Arc3 {
      */
     private onGuildMemberAdd(member: GuildMember) {
 
-        if ( member.user.id !== this.clientInstance.user?.id )
-            return;
+      if ( !member || !member.user )
+        return;
 
-        Arc3.clientLogger.info("Bot joined a new guild: " + member.guild.name);
+      if ( member.user.id !== this.clientInstance.user?.id )
+          return;
 
-        Arc3.NewGuild([], member.guild)
-          .then( () => Arc3.clientLogger.info("New guild created in database: " + member.guild.name) )
-          .catch( e => Arc3.clientLogger.error("Error creating new guild in database: ", e) );
+      Arc3.clientLogger.info("Bot joined a new guild: " + member.guild.name);
+
+      Arc3.NewGuild([], member.guild)
+        .then( () => Arc3.clientLogger.info("New guild created in database: " + member.guild.name) )
+        .catch( e => Arc3.clientLogger.error("Error creating new guild in database: ", e) );
 
     }
 
@@ -164,7 +167,7 @@ export namespace Arc3 {
     public async runAsync() {
 
       // The following syntax should be used in the ECMAScript environment
-      await importx(`${dirname(import.meta.url)}/{events,commands}/**/*.{ts,js}`);
+      await importx(`${dirname(import.meta.url)}/discord/{events,commands}/**/*.{ts,js}`);
 
       // Let's start the bot
       if (!process.env.TOKEN) {

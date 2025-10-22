@@ -1,10 +1,10 @@
 import { Logger } from "pino";
-import Modmail from "../../schema/v1/Modmail";
+import Modmail from "../schema/v1/Modmail";
 import { ModmailRepo } from "../repositories/ModmailRepo";
 import { Arc3 } from "../arc3.js";
 import { Client } from "discordx";
 import { SendAttachmentsAndMessageToWebhook, SendModmailSelectMenu } from "../util/ModmailUtils.js";
-import { Locale, useTextContent } from "../../hooks/useTextContent.js";
+import { Locale, useTextContent } from "../hooks/useTextContent.js";
 import { Message } from "discord.js";
 
 

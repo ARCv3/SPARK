@@ -1,4 +1,4 @@
-import { Arc3 } from "./lib/arc/arc3.js";
+import { Arc3 } from "./lib/arc3.js"
 import * as dotenv from 'dotenv';
 
 dotenv.config({ path: '.env'})

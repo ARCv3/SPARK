@@ -1,13 +1,13 @@
-import { ArgsOf, Client, Discord, On, SelectMenuComponent } from "discordx";
-import { Arc3 } from "../arc3.js";
-import { StringSelectMenuInteraction } from "discord.js";
+import { ArgsOf, ButtonComponent, Client, Discord, On, SelectMenuComponent } from "discordx";
+import { Arc3 } from "../../arc3.js";
+import { ButtonInteraction, StringSelectMenuInteraction } from "discord.js";
 import { Logger } from "pino";
 
 import mongoose from 'mongoose';
 import mongooseLong from 'mongoose-long'
-import { ModmailMessageService } from "../service/ModmailMessageService.js";
-import { ModmailRepo } from "../repositories/ModmailRepo.js";
-import { ModmailInteractionService } from "../service/ModmailInteractionService.js";
+import { ModmailMessageService } from "../../service/ModmailMessageService.js";
+import { ModmailRepo } from "../../repositories/ModmailRepo.js";
+import { ModmailInteractionService } from "../../service/ModmailInteractionService.js";
 
 mongooseLong(mongoose);
 
@@ -74,6 +74,17 @@ export class ModmailEvents {
         this.modmailInteractionService.ProcessModmailServerSelection(interaction)
           .catch( e => this.logger.error(e) );
     }
+
+    @ButtonComponent({ id: new RegExp("modmail\.save\..*") })
+    async handleModmailSaveButton(interaction: ButtonInteraction) {
+
+        await interaction.deferReply();
+
+        this.modmailInteractionService.ProcessModmailSaveButton(interaction)
+            .catch( e => this.logger.error(e) );
+
+    }
+
 
 }
 

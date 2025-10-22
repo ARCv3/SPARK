@@ -1,39 +1,34 @@
+import { Arc3 } from "../arc3.js";
+
 import { 
-    ActionRow,
     ActionRowBuilder, 
-    ButtonBuilder, 
-    ButtonStyle, 
     ChannelType, 
     Client, 
     ComponentEmojiResolvable,
-    EmbedBuilder,
     Guild, 
     Message, 
     MessageActionRowComponentBuilder,
     MessageComponentInteraction,
     StringSelectMenuBuilder, 
     StringSelectMenuOptionBuilder,
-    TextChannel,
     User,
     Webhook 
 } from "discord.js";
 
-import Modmail from "../../schema/v1/Modmail.js";
+import Modmail from "../schema/v1/Modmail.js";
+
+import { useGuildConfig } from "../hooks/useGuildConfig.js";
+import { useActiveModmails } from "../hooks/useActiveModmails.js";
+import { Locale, useTextContent } from "../hooks/useTextContent.js";
+import { Logger } from "pino";
+import { CreateTextChannel } from "./DiscordUtils.js";
+import { ModmailFailedEmbed, ModmailMenuEmbed } from "../../ui/ModmailUi.js";
+import { useBlacklist } from "../hooks/useBlacklist.js";
 
 import mongoose from 'mongoose';
 import mongooseLong from 'mongoose-long'
-import { useGuildConfig } from "../../hooks/useGuildConfig.js";
-import { useActiveModmails } from "../../hooks/useActiveModmails.js";
-import { Arc3 } from "../arc3.js";
-import { Locale, useTextContent } from "../../hooks/useTextContent.js";
-import { title } from "process";
-import { Logger } from "pino";
-
-
 mongooseLong(mongoose);
-
 const { Types: { Long, ObjectId} } = mongoose;
-
 
 /**
  * Initializes modmail for a user in a guild.
@@ -47,7 +42,7 @@ const { Types: { Long, ObjectId} } = mongoose;
 export async function initModmailAsync(clientInstance: Client, guild: Guild, user: User) : Promise<InstanceType<typeof Modmail> | undefined> {
 
     const { getGuildConfig } = useGuildConfig().actions;
-    const { actions: { buildCache }, states: {activeModmailsCache} } = useActiveModmails();
+    const { actions: { buildCache } } = useActiveModmails();
     const { text } = useTextContent(Locale.EN).actions;
 
     const activeModmails = await buildCache();
@@ -67,29 +62,36 @@ export async function initModmailAsync(clientInstance: Client, guild: Guild, use
     if (modmailCategory?.type !== ChannelType.GuildCategory)
         return undefined;
     
-    const mailChannel = await guild.channels.create({
-        name: `${text('arc.modmail.channel.name')}-${user.username}`,
-        type:  ChannelType.GuildText,
-        parent: modmailCategory?.id
-
-    });
+    const mailChannel = await CreateTextChannel(
+        guild,
+        `${text('arc.modmail.channel.name')}-${user.username}`,
+        { parent: modmailCategory?.id}
+    );
 
     const webhook = await mailChannel.createWebhook({
         name: user.username
     });
 
+    const modmail = await CreateModmail(user.id, mailChannel.id, webhook.id);
+
+    return modmail;
+    
+}
+
+export async function CreateModmail(userId: string, channelId: string, webhookId: string) : Promise<InstanceType<typeof Modmail>> {
+
+    const { states: {activeModmailsCache} } = useActiveModmails();
+
     const modmail = new Modmail({
         _id: ObjectId.createFromTime(new Date().getTime()),
-        usersnowflake: Long.fromString(user.id),
-        channelsnowflake: Long.fromString(mailChannel.id), 
-        webhooksnowflake: Long.fromString(webhook.id)
+        usersnowflake: Long.fromString(userId),
+        channelsnowflake: Long.fromString(channelId),
+        webhooksnowflake: Long.fromString(webhookId)
     });
 
     await modmail.save();
     activeModmailsCache.clear();
-
     return modmail;
-    
 }
 
 /**
@@ -102,6 +104,8 @@ export async function BuildModmailSelectMenu() {
     const guilds = await Arc3.Arc3.clientInstance.guilds.cache;
     const { buildCache } = useGuildConfig().actions;
     const guildConfigs = await buildCache();
+
+    const { actions: { getBlacklist }, states: { blacklistCache }}= useBlacklist();
     
     const selectMenuOptions = [];
     
@@ -187,92 +191,14 @@ export async function SendModmailSelectMenu(message: Message<boolean>) {
 
 export async function BuildModmailMenuEmbed(clientInstance: Client, modmail: InstanceType<typeof Modmail>) {
 
-    const embedBuilder = new EmbedBuilder();
-    const { text } = useTextContent(Locale.EN).actions;
-
     const user = await clientInstance.users.fetch(modmail.usersnowflake?.toString()?? "0", {
         cache: false
     });
 
-    const embedStrings = {
-        footer: text('arc.modmail.menu.footer', Arc3.Arc3.clientVersion),
-        title: text('arc.modmail.menu.title'),
-        description: text('arc.modmail.menu.description', user.id.toString()),
-        buttons: {
-            save: {
-                text: text('arc.modmail.menu.button.save'),
-                emoji: text('arc.modmail.menu.button.save.emoji')
-            },
-            ban: {
-                text: text('arc.modmail.menu.button.ban'),
-                emoji: text('arc.modmail.menu.button.ban.emoji')
-            },
-            ping: {
-                text: text('arc.modmail.menu.button.ping'),
-                emoji: text('arc.modmail.menu.button.ping.emoji')
-            }
-        }
-    }
+    const menuEmbed = ModmailMenuEmbed(user.id, modmail._id?.toString())
 
-    embedBuilder.setTimestamp(new Date());
-    embedBuilder.setFooter({
-        text: embedStrings.footer,
-        iconURL: clientInstance.user?.avatarURL() ?? undefined
-    });
-    
-    embedBuilder.setTitle(embedStrings.title);
-    embedBuilder.setDescription(embedStrings.description);
+    return  menuEmbed;
 
-    const buttonRow = new ActionRowBuilder<MessageActionRowComponentBuilder>()
-        .addComponents(
-            new ButtonBuilder()
-                .setCustomId(`modmail.save.${modmail._id?.toString()}`)
-                .setStyle(ButtonStyle.Secondary)
-                .setEmoji(embedStrings.buttons.save.emoji)
-                .setLabel(embedStrings.buttons.save.text),
-            new ButtonBuilder()
-                .setCustomId(`modmail.ban.${modmail._id?.toString()}`)
-                .setStyle(ButtonStyle.Danger)
-                .setEmoji(embedStrings.buttons.ban.emoji)
-                .setLabel(embedStrings.buttons.ban.text),
-            new ButtonBuilder()
-                .setCustomId(`modmail.ping.${modmail._id?.toString()}`)
-                .setStyle(ButtonStyle.Success)
-                .setEmoji(embedStrings.buttons.ping.emoji)
-                .setLabel(embedStrings.buttons.ping.text)
-    );
-
-    return {
-        embeds: [embedBuilder.toJSON()],
-        components: [buttonRow]
-    }
-
-}
-
-export function BuildModmailSentEmbed() {
-
-    const embedBuilder = new EmbedBuilder();
-    const self = Arc3.Arc3.clientInstance.user;
-    const { text } = useTextContent(Locale.EN).actions;
-    
-    if (!self)
-        throw new Error("Client user is not initialized.")
-
-    embedBuilder.setAuthor({
-        name: self.username,
-        iconURL: self.avatarURL()?? undefined
-    });
-
-    embedBuilder.setDescription(text('arc.modmail.delivery.recieved.description'));
-
-    embedBuilder.setFooter({
-        text: text('arc.modmail.delivery.recieved.footer'),
-        iconURL: self.avatarURL()?? undefined,
-    });
-
-    embedBuilder.setTimestamp(new Date());
-
-    return embedBuilder.data;
 }
 
 export async function TryCleanupModmail(interaction: MessageComponentInteraction, e: any, logger: Logger) {
@@ -299,12 +225,7 @@ export async function TryCleanupModmail(interaction: MessageComponentInteraction
 
         // Send a message to the user
         await interaction.user.send({
-            embeds: [
-                new EmbedBuilder()
-                    .setTitle("Modmail Failed")
-                    .setDescription("Your modmail failed to create. Please try again later.")
-                    .setColor("Red")
-            ]
+            embeds: [ModmailFailedEmbed()]
         }).catch(e => {
             logger.error(e, "Failed to send modmail failed message to user");
         });

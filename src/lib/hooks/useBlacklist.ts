@@ -1,5 +1,5 @@
 import { Cacheables } from "cacheables";
-import { Arc3 } from "../arc/arc3.js";
+import { Arc3 } from "../arc3.js"
 import Blacklist from "../schema/v1/Blacklist.js";
 
 import mongoose from 'mongoose';
