@@ -21,14 +21,16 @@ import { useGuildConfig } from "../hooks/useGuildConfig.js";
 import { useActiveModmails } from "../hooks/useActiveModmails.js";
 import { Locale, useTextContent } from "../hooks/useTextContent.js";
 import { Logger } from "pino";
-import { CreateTextChannel } from "./DiscordUtils.js";
-import { ModmailFailedEmbed, ModmailMenuEmbed } from "../../ui/ModmailUi.js";
+import { CreateTextChannel, CreateWebhook } from "./DiscordUtils.js";
+import { ModmailFailedEmbed, ModmailMenuEmbed, ModmailTranscriptEmbed } from "../../ui/ModmailUi.js";
 import { useBlacklist } from "../hooks/useBlacklist.js";
 
 import mongoose from 'mongoose';
 import mongooseLong from 'mongoose-long'
 mongooseLong(mongoose);
 const { Types: { Long, ObjectId} } = mongoose;
+
+const logger = Arc3.Arc3.clientLogger.child("ModmailUtils");
 
 /**
  * Initializes modmail for a user in a guild.
@@ -39,28 +41,35 @@ const { Types: { Long, ObjectId} } = mongoose;
  * @returns A promise that resolves to true if modmail was successfully initialized, false otherwise.
  * 
  */
-export async function initModmailAsync(clientInstance: Client, guild: Guild, user: User) : Promise<InstanceType<typeof Modmail> | undefined> {
+export async function initModmailAsync(guild: Guild, user: User) : Promise<InstanceType<typeof Modmail> | undefined> {
 
     const { getGuildConfig } = useGuildConfig().actions;
     const { actions: { buildCache } } = useActiveModmails();
     const { text } = useTextContent(Locale.EN).actions;
-
-    const activeModmails = await buildCache();
+    
     const guildConfig = await getGuildConfig(guild.id);
 
-    if (activeModmails.map(x => x.usersnowflake?.toString()).includes(user.id))
+    if (!("modmailchannel" in guildConfig)) {
+        logger.warn("Guild %s does not have a modmail channel configured. Failed to init modmail", guild.id);
         return undefined;
-
-    if (!("modmailchannel" in guildConfig))
-        return undefined;
+    }
 
     const modmailCategorySnowflake = guildConfig["modmailchannel"];
     const modmailCategory = await guild.channels.fetch(modmailCategorySnowflake, {
         cache: false
     });
 
-    if (modmailCategory?.type !== ChannelType.GuildCategory)
+    if (modmailCategory?.type !== ChannelType.GuildCategory) {
+        logger.warn("Guild %s modmail channel is not a category. Failed to init modmail", guild.id);
         return undefined;
+    }
+    
+    const activeModmails = await buildCache();
+
+    if (activeModmails.map(x => x.usersnowflake?.toString()).includes(user.id)) {
+        logger.warn("User %s already has an active modmail. Failed to init modmail", user.id);
+        return undefined;
+    }
     
     const mailChannel = await CreateTextChannel(
         guild,
@@ -68,11 +77,16 @@ export async function initModmailAsync(clientInstance: Client, guild: Guild, use
         { parent: modmailCategory?.id}
     );
 
-    const webhook = await mailChannel.createWebhook({
-        name: user.username
-    });
+    const webhook = await CreateWebhook(
+        mailChannel,
+        user.username
+    );
 
-    const modmail = await CreateModmail(user.id, mailChannel.id, webhook.id);
+    const modmail = await CreateModmail(
+        user.id,
+        mailChannel.id, 
+        webhook.id
+    );
 
     return modmail;
     
@@ -104,17 +118,14 @@ export async function BuildModmailSelectMenu() {
     const guilds = await Arc3.Arc3.clientInstance.guilds.cache;
     const { buildCache } = useGuildConfig().actions;
     const guildConfigs = await buildCache();
-
-    const { actions: { getBlacklist }, states: { blacklistCache }}= useBlacklist();
-    
     const selectMenuOptions = [];
     
     for ( const [guildId, guild] of guilds) {
 
-        if (!(guild.id in guildConfigs))
+        if (!(guildId in guildConfigs))
             continue;
 
-        if (!("modmailchannel" in guildConfigs[guild.id]))
+        if (!("modmailchannel" in guildConfigs[guildId]))
             continue;
 
         const fetchedGuild = await guild.fetch();
@@ -189,25 +200,44 @@ export async function SendModmailSelectMenu(message: Message<boolean>) {
 
 }
 
-export async function BuildModmailMenuEmbed(clientInstance: Client, modmail: InstanceType<typeof Modmail>) {
+export async function LogModmailTranscript(guild: Guild, userSnowflake: string, savedBySnowflake: string) {
 
-    const user = await clientInstance.users.fetch(modmail.usersnowflake?.toString()?? "0", {
+    const { getGuildConfig } = useGuildConfig().actions;
+    const guildConfig = await getGuildConfig(guild.id);
+
+    if (!("transcriptchannel" in guildConfig)) {
+        logger.warn("Guild %s does not have a transcript channel configured. Failed to save transcript", guild.id);
+        return;
+    }
+
+    const transcriptChannelSnowflake = guildConfig['transcriptchannel'];
+    const transcriptChannel = await guild.channels.fetch(transcriptChannelSnowflake, {
         cache: false
     });
 
-    const menuEmbed = ModmailMenuEmbed(user.id, modmail._id?.toString())
+    if (!(transcriptChannel && transcriptChannel.type === ChannelType.GuildText)) {
+        logger.warn("Guild %s transcript channel is not a text channel or does not exist. Failed to save transcript", guild.id);
+        return undefined;
+    }
 
-    return  menuEmbed;
+    const transcriptUrl = 'https://example.com/transcript/' + userSnowflake; // Placeholder URL
+
+    await transcriptChannel.send({
+        embeds: [ModmailTranscriptEmbed(userSnowflake, savedBySnowflake, transcriptUrl)]
+    });
 
 }
 
-export async function TryCleanupModmail(interaction: MessageComponentInteraction, e: any, logger: Logger) {
-    const recentTimestamp = new Date();
+export async function TryCleanupModmail(interaction: MessageComponentInteraction, userSnowflake: string, error: any = null, failed: boolean = true, options: Partial<InstanceType<typeof Modmail>>= {}) {
+
+    const recentTimestamp = new Date(); 
     recentTimestamp.setSeconds(recentTimestamp.getSeconds() - 30);
+    const { activeModmailsCache } = useActiveModmails().states;
 
     const modmails = await Modmail.find({
-        usersnowflake: Long.fromString(interaction.user.id),
-        createdAt: { $gte: recentTimestamp }
+        usersnowflake: Long.fromString(userSnowflake),
+        ...options as any,
+        createdAt: failed? { $gte: recentTimestamp } : { $lte: new Date()}
     });
 
     const modmail = modmails[0];
@@ -223,20 +253,26 @@ export async function TryCleanupModmail(interaction: MessageComponentInteraction
             });
         }
 
-        // Send a message to the user
-        await interaction.user.send({
-            embeds: [ModmailFailedEmbed()]
-        }).catch(e => {
-            logger.error(e, "Failed to send modmail failed message to user");
-        });
-
+        if (failed) {
+            // Send a message to the user
+            await interaction.user.send({
+                embeds: [ModmailFailedEmbed()]
+            }).catch(e => {
+                logger.error(e, "Failed to send modmail failed message to user");
+            });
+        }
+  
 
         // Delete the modmail
         await modmail.deleteOne().catch(e => {
-            logger.error(e, "Failed to delete modmail after failed creation");
+            logger.error(e, "Failed to delete modmail from database");
         });
+
+        activeModmailsCache.clear();
+
+        return
 
     }
 
-    logger.error(e, "Failed to create modmail");
+    logger.error(error, "Failed to cleanup modmail");
 }
