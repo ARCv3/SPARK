@@ -6,6 +6,7 @@
     "arc.modmail.channel.name": "Modmail",
     "arc.modmail.delivery.emoji.delivered": "📨",
     "arc.modmail.delivery.emoji.failed": "🔴",
+    "arc.modmail.delivery.emoji.edited": "✏️",
     "arc.modmail.delivery.recieved.description": "Your modmail request was recieved! Please wait and a staff member will assist you shortly.",
     "arc.modmail.delivery.recieved.footer": "v0.1 Thank you for using ARC",
     "arc.modmail.menu.button.ban": "Ban",

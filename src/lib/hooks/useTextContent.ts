@@ -64,6 +64,7 @@ export interface Translations {
     // Modmail - Delivery
     'arc.modmail.delivery.emoji.delivered': string; // "📨"
     'arc.modmail.delivery.emoji.failed': string; // "🔴"
+    'arc.modmail.delivery.emoji.edited': string; // "✏️"
     'arc.modmail.delivery.recieved.description': string; // "Your modmail request was recieved! Please wait and a staff member will assist you shortly."
     'arc.modmail.delivery.recieved.footer': string; // v0.1 Thank you for using ARC
     
@@ -74,6 +75,7 @@ export interface Translations {
     'arc.modmail.menu.button.ping.emoji': string; // 📣
     'arc.modmail.menu.button.save': string; // Save
     'arc.modmail.menu.button.save.emoji': string; // 💾
+    
     
     // Modmail - Menu General
     'arc.modmail.menu.description': string; // A modmail session was opened with <@{0}>
