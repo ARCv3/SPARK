@@ -29,16 +29,16 @@ export const useGuildConfig = () => {
 
         return guildConfigCache.cacheable(async () => {
 
-            const config : Record<string, Record<string, string>> = {};
+            const config : Record<string, Record<GuildConfigKey, string>> = {};
             const guildConfigs = await GuildConfig.find();
 
             guildConfigs.forEach(x => {
                 
                 const guildSnowflake = x.guildsnowflake?.toString() ?? "undefined";
-                const configKey = x.configkey ?? "unknown";
+                const configKey : GuildConfigKey = (x.configkey ?? "unknown") as GuildConfigKey;
 
                 if (!config[guildSnowflake])
-                    config[guildSnowflake] = {};
+                    config[guildSnowflake] = {} as Record<GuildConfigKey, string>;
 
                 config[guildSnowflake][configKey] = x.configvalue ?? "undefined";
             
@@ -59,11 +59,12 @@ export const useGuildConfig = () => {
         });
 
         await config.save();
-        guildConfigCache.delete("guildConfigs");
+        guildConfigCache.clear();
+        await buildCache();
 
     }
 
-    async function getConfig(guildSnowflake: string, configKey: string) {
+    async function getConfig(guildSnowflake: string, configKey: GuildConfigKey) {
         const config = await buildCache();
         return config[guildSnowflake]?.[configKey];
     }
@@ -87,3 +88,8 @@ export const useGuildConfig = () => {
     }
 
 }
+
+export enum GuildConfigKey {
+    modmailchannel = 'modmailchannel',
+    transcriptchannel = 'transcriptchannel',
+};
