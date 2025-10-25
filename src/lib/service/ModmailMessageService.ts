@@ -6,7 +6,7 @@ import { Client } from "discordx";
 import { SendAttachmentsAndMessageToWebhook, SendModmailSelectMenu } from "../util/ModmailUtils.js";
 import { Locale, useTextContent } from "../hooks/useTextContent.js";
 import { Message } from "discord.js";
-import { CreateTranscript } from "../util/TranscriptUtils";
+import { CreateTranscript } from "../util/TranscriptUtils.js";
 
 
 export class ModmailMessageService {

@@ -1,5 +1,5 @@
-import Modmail from "../schema/v1/Modmail";
-import Transcript from "../schema/v1/Transcript";
+import Modmail from "../schema/v1/Modmail.js";
+import Transcript from "../schema/v1/Transcript.js";
 
 
 export async function CreateTranscript(
@@ -9,18 +9,18 @@ export async function CreateTranscript(
     createdAt: Date,
     messageContent: string,
     guildSnowflake: string,
-    transcripttype: string,
+    transcriptType: string,
     comment: boolean
 ) {
 
     const transcript = new Transcript({
         modmailId: modmail._id?.toString(),
-        senderSnowflake: senderSnowflake,
+        sendersnowflake: senderSnowflake,
         attachments: attachments,
-        createdAt: createdAt,
+        createdat: createdAt,
         GuildSnowflake: guildSnowflake,
-        messageContent: messageContent,
-        transcripttype: transcripttype,
+        messagecontent: messageContent,
+        transcripttype: transcriptType,
         comment: comment
     });
 
