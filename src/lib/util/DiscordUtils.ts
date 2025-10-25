@@ -1,7 +1,7 @@
-import { ChannelType, Guild, TextChannel } from "discord.js";
+import { ChannelType, ChannelWebhookCreateOptions, Guild, GuildChannelCreateOptions, TextChannel, Webhook } from "discord.js";
 
 
-export async function CreateTextChannel(guild: Guild, name: string,...options: any) : Promise<TextChannel> {
+export async function CreateTextChannel(guild: Guild, name: string, options?: Partial<GuildChannelCreateOptions>) : Promise<TextChannel> {
 
     return await (guild.channels.create({
         name,
@@ -11,3 +11,9 @@ export async function CreateTextChannel(guild: Guild, name: string,...options: a
 
 }
 
+export async function CreateWebhook(channel: TextChannel, name: string, options?: Partial<ChannelWebhookCreateOptions>) : Promise<Webhook> {
+    return await channel.createWebhook({
+        name, 
+        ...options,
+    })
+}
