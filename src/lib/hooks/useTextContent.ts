@@ -80,5 +80,13 @@ export interface Translations {
     'arc.modmail.menu.footer': string; // ARC v{0} - Modmail
     'arc.modmail.menu.select.placeholder': string; // "Select a server to modmail: "
     'arc.modmail.menu.title': string; // Modmail
+    
+    //Modmail - Failed
+    'arc.modmail.failed.title': string; // Modmail Failed
+    'arc.modmail.failed.description': string; // There was an error while trying to open your modmail. Please try again later.
+
+    // Modmail - Transcript
+    'arc.modmail.transcript.title': string; // Modmail Transcript
+    'arc.modmail.transcript.description': string; // **Modmail with:** <@{0}>\n**Saved** <t:{1}:R> **by** <@{2}>\n\n[Transcript]({3})
 
 }
