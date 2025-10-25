@@ -113,7 +113,7 @@ export function ModmailTranscriptEmbed(userSnowflake: string, savedBySnowflake: 
 
     const embedStrings = {
         title: text('arc.modmail.transcript.title'),
-        description: text('arc.modmail.transcript.description', userSnowflake, savedAt.getTime().toString(), savedBySnowflake, transcriptUrl),
+        description: text('arc.modmail.transcript.description', userSnowflake, Math.trunc(savedAt.getTime()/1000).toString(), savedBySnowflake, transcriptUrl),
         footer: text('arc.modmail.menu.footer', Arc3.Arc3.clientVersion),
     }
 
