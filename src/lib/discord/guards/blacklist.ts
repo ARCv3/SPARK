@@ -24,15 +24,13 @@ export const Blacklist: GuardFunction<CommandInteraction> = async (
         interactionParams.commandName
     );
 
-    if (blacklistCondition) {
+    if (!blacklistCondition) {
         next();
+        return;
     }
 
-    interactionParams.reply({
+    await interactionParams.reply({
         content: text('arc.blacklist'),
-        flags: [
-            "Ephemeral"
-        ]
     })
 
 }
