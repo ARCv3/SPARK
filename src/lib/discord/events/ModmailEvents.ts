@@ -56,8 +56,24 @@ export class ModmailEvents {
         if (message.author.bot) 
             return;
 
-        this.modmailMessageService.ProcessModmailMessageRecieved(client, message)
+        this.modmailMessageService.ProcessModmailMessageRecieved(message)
           .catch( e => this.logger.error(e) );
+
+    }
+
+    @On({ event: 'messageUpdate' })
+    onMessageUpdate(
+        [oldMessage, newMessage] : ArgsOf<'messageUpdate'>,
+        client: Client,
+        guardPayload: any,
+    ) {
+
+        // Guard if the author is a bot
+        if (newMessage.author?.bot) 
+            return;
+
+        this.modmailMessageService.ProcessModmailMessageUpdated(oldMessage, newMessage)
+            .catch( e => this.logger.error(e) );
 
     }
 
@@ -75,6 +91,11 @@ export class ModmailEvents {
           .catch( e => this.logger.error(e) );
     }
 
+    /**
+     * Event handler for modmail save button interaction.
+     * It processes the modmail save button interaction.
+     * @param {ButtonInteraction} interaction - The button interaction object.
+     */
     @ButtonComponent({ id: new RegExp("modmail\.save\..*") })
     async handleModmailSaveButton(interaction: ButtonInteraction) {
 

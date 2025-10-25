@@ -42,7 +42,8 @@ export class ModmailInteractionService {
 
         initModmailAsync(
             guild, 
-            interaction.user
+            interaction.user,
+            this.modmailRepo
         ).then(async (modmail) => {
 
             if (modmail === undefined) {
@@ -66,7 +67,8 @@ export class ModmailInteractionService {
         .catch(async (e) => {
             
             // Try and find and cleanup the modmail
-            await TryCleanupModmail(interaction, interaction.user.id, e);      
+            await TryCleanupModmail(interaction, interaction.user.id, e); 
+            this.modmailRepo.clearActiveModmailsCache()  
         });
     }
    
@@ -104,6 +106,7 @@ export class ModmailInteractionService {
         await TryCleanupModmail(interaction, modmail.usersnowflake?.toString()?? "0", undefined, false, {
             _id: modmail._id
         })
+        this.modmailRepo.clearActiveModmailsCache();
 
     }
 

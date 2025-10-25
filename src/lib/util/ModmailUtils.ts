@@ -3,7 +3,6 @@ import { Arc3 } from "../arc3.js";
 import { 
     ActionRowBuilder, 
     ChannelType, 
-    Client, 
     ComponentEmojiResolvable,
     Guild, 
     Message, 
@@ -18,15 +17,13 @@ import {
 import Modmail from "../schema/v1/Modmail.js";
 
 import { useGuildConfig } from "../hooks/useGuildConfig.js";
-import { useActiveModmails } from "../hooks/useActiveModmails.js";
 import { Locale, useTextContent } from "../hooks/useTextContent.js";
-import { Logger } from "pino";
 import { CreateTextChannel, CreateWebhook } from "./DiscordUtils.js";
 import { ModmailFailedEmbed, ModmailMenuEmbed, ModmailTranscriptEmbed } from "../../ui/ModmailUi.js";
-import { useBlacklist } from "../hooks/useBlacklist.js";
 
 import mongoose from 'mongoose';
 import mongooseLong from 'mongoose-long'
+import { ModmailRepo } from "../repositories/ModmailRepo.js";
 mongooseLong(mongoose);
 const { Types: { Long, ObjectId} } = mongoose;
 
@@ -41,10 +38,9 @@ const logger = Arc3.Arc3.clientLogger.child("ModmailUtils");
  * @returns A promise that resolves to true if modmail was successfully initialized, false otherwise.
  * 
  */
-export async function initModmailAsync(guild: Guild, user: User) : Promise<InstanceType<typeof Modmail> | undefined> {
+export async function initModmailAsync(guild: Guild, user: User, modmailRepo: ModmailRepo) : Promise<InstanceType<typeof Modmail> | undefined> {
 
     const { getGuildConfig } = useGuildConfig().actions;
-    const { actions: { buildCache } } = useActiveModmails();
     const { text } = useTextContent(Locale.EN).actions;
     
     const guildConfig = await getGuildConfig(guild.id);
@@ -64,7 +60,7 @@ export async function initModmailAsync(guild: Guild, user: User) : Promise<Insta
         return undefined;
     }
     
-    const activeModmails = await buildCache();
+    const activeModmails = await modmailRepo.getActiveModmails()
 
     if (activeModmails.map(x => x.usersnowflake?.toString()).includes(user.id)) {
         logger.warn("User %s already has an active modmail. Failed to init modmail", user.id);
@@ -82,7 +78,7 @@ export async function initModmailAsync(guild: Guild, user: User) : Promise<Insta
         user.username
     );
 
-    const modmail = await CreateModmail(
+    const modmail = await modmailRepo.CreateModmail(
         user.id,
         mailChannel.id, 
         webhook.id
@@ -90,22 +86,6 @@ export async function initModmailAsync(guild: Guild, user: User) : Promise<Insta
 
     return modmail;
     
-}
-
-export async function CreateModmail(userId: string, channelId: string, webhookId: string) : Promise<InstanceType<typeof Modmail>> {
-
-    const { states: {activeModmailsCache} } = useActiveModmails();
-
-    const modmail = new Modmail({
-        _id: ObjectId.createFromTime(new Date().getTime()),
-        usersnowflake: Long.fromString(userId),
-        channelsnowflake: Long.fromString(channelId),
-        webhooksnowflake: Long.fromString(webhookId)
-    });
-
-    await modmail.save();
-    activeModmailsCache.clear();
-    return modmail;
 }
 
 /**
@@ -169,11 +149,13 @@ export async function SendAttachmentsAndMessageToWebhook(message: Message, webho
     }
 
     if (message.content) {
-        await webhook.send({
+        const webhookMessage = await webhook.send({
             content: message.content,
             avatarURL: message.author.avatarURL()?? undefined,
             isMessage: true
         });
+
+        return webhookMessage.id;
     }
 
 }
@@ -232,7 +214,6 @@ export async function TryCleanupModmail(interaction: MessageComponentInteraction
 
     const recentTimestamp = new Date(); 
     recentTimestamp.setSeconds(recentTimestamp.getSeconds() - 30);
-    const { activeModmailsCache } = useActiveModmails().states;
 
     const modmails = await Modmail.find({
         usersnowflake: Long.fromString(userSnowflake),
@@ -267,8 +248,6 @@ export async function TryCleanupModmail(interaction: MessageComponentInteraction
         await modmail.deleteOne().catch(e => {
             logger.error(e, "Failed to delete modmail from database");
         });
-
-        activeModmailsCache.clear();
 
         return
 

@@ -2,11 +2,9 @@ import { Logger } from "pino";
 import Modmail from "../schema/v1/Modmail";
 import { ModmailRepo } from "../repositories/ModmailRepo";
 import { Arc3 } from "../arc3.js";
-import { Client } from "discordx";
 import { SendAttachmentsAndMessageToWebhook, SendModmailSelectMenu } from "../util/ModmailUtils.js";
 import { Locale, useTextContent } from "../hooks/useTextContent.js";
-import { Message } from "discord.js";
-import { CreateTranscript } from "../util/TranscriptUtils.js";
+import { Message, PartialMessage } from "discord.js";
 
 
 export class ModmailMessageService {
@@ -24,11 +22,100 @@ export class ModmailMessageService {
      * It checks if the message is in a DM channel and processes it accordingly.
      * @param {Message} message - The message object to process.
      */
-    public async ProcessModmailMessageRecieved(this: ModmailMessageService, client: Client, message: Message) {
+    public async ProcessModmailMessageRecieved(this: ModmailMessageService, message: Message) {
 
         if (message.channel.isDMBased())
-            return await this.ProcessModmailDmMessageRecieved(client, message);
+            return await this.ProcessModmailDmMessageRecieved(message);
 
+        const activeModmails = await this.modmailRepo.getActiveModmails();
+
+        if (activeModmails.find(m => m.channelsnowflake?.toString() === message.channelId )) {
+            return await this.ProcessModmailChannelMessageRecieved(message);
+        }
+
+    }
+
+    /**
+     * Processes a modmail message update.
+     * It checks if the message is in a DM channel and processes it accordingly.
+     * @param {Message | PartialMessage} oldMessage - The old message object.
+     * @param {Message} newMessage - The new message object.
+     * @return {Promise<void>}
+     */
+    public async ProcessModmailMessageUpdated(this: ModmailMessageService, oldMessage: Message | PartialMessage, newMessage: Message) {
+
+        const correspondingMessage = this.modmailRepo.getRecentModmailMessageID(oldMessage.id);
+        const { text } = useTextContent(Locale.EN).actions;
+        if (!correspondingMessage) {
+            return;
+        }
+        
+        if (oldMessage.channel.isDMBased()) {
+            this.EditModmailWebhookMessage(oldMessage, newMessage, correspondingMessage)
+                .then( async _ => {
+                    this.logger.info("Edited modmail webhook message for DM message %s", oldMessage.id);
+                    await newMessage.react(text('arc.modmail.delivery.emoji.edited'));
+                })
+                .catch( e => this.logger.error(e) );
+        }
+
+    }
+
+    /**
+     * Edits a modmail webhook message when the original message is edited.
+     * @param {Message | PartialMessage} oldMessage - The old message object.
+     * @param {Message} newMessage - The new message object.
+     * @param {string} correspondingMessage - The ID of the corresponding webhook message.
+     * @returns {Promise<void>}
+     */
+    private async EditModmailWebhookMessage(oldMessage: Message | PartialMessage, newMessage: Message, correspondingMessage: string) {
+        
+        const modmails = await this.modmailRepo.getActiveModmails();
+        const modmail = modmails.find( m => m.usersnowflake?.toString() === oldMessage.author?.id );
+        
+        if (!modmail) {
+            this.logger.warn("No active modmail found for user %s when processing updated modmail message", oldMessage.author?.id);
+            return;
+        }
+        
+        const webhook  = await Arc3.Arc3.clientInstance.fetchWebhook(modmail?.webhooksnowflake?.toString() ?? "0")
+
+        if (!webhook) {
+            this.logger.error("No webhook found for modmail %s when processing updated modmail message", modmail._id?.toString());
+            return;
+        }
+
+        await webhook.editMessage(correspondingMessage, {
+            content: newMessage.content,
+            embeds: newMessage.embeds,
+            components: newMessage.components
+        });
+
+        await this.modmailRepo.CreateTranscript(
+            modmail,
+            newMessage.author.id,
+            newMessage.attachments.map(x => x.proxyURL ),
+            newMessage.createdAt,
+            newMessage.content,
+            newMessage.guildId?? "0",
+            "Modmail",
+            false,
+            oldMessage.id
+        )
+    }
+
+    private async ProcessModmailChannelMessageRecieved(this: ModmailMessageService, message: Message) {
+        
+        // We need to guard certain dm messages to save performance. 
+        // If it is from a bot we can safely ignore
+        if (message.author.bot)
+            return;
+
+        const modmails = await this.modmailRepo.getActiveModmails();
+        const modmail = modmails.find(m => m.channelsnowflake?.toString() === message.channelId );
+        const user = await Arc3.Arc3.clientInstance.users.fetch(modmail?.usersnowflake?.toString() ?? "0");
+
+        
     }
 
     /**
@@ -37,7 +124,7 @@ export class ModmailMessageService {
      * If no active modmail is found, it handles the creation of a new modmail.
      * @param {Message} message - The message object to process.
      */
-    private async ProcessModmailDmMessageRecieved( this: ModmailMessageService, client: Client, message: Message) {
+    private async ProcessModmailDmMessageRecieved( this: ModmailMessageService, message: Message) {
 
         // We need to guard certain dm messages to save performance. 
         // If it is from a bot we can safely ignore
@@ -60,7 +147,6 @@ export class ModmailMessageService {
 
         // We have established the user has an active modmail, is not a bot, and does not wish to close the session
         await this.ProcessModmailMessageToGuild(
-            client,
             message,  
             modmails.filter((x: InstanceType<typeof Modmail>)=> x.usersnowflake?.toString() === message.author.id)[0]
         );
@@ -73,18 +159,20 @@ export class ModmailMessageService {
      * @param {Message} message - The message object to process.
      * @param {any} modmail - The modmail object associated with the user.
      */
-    private async ProcessModmailMessageToGuild(this: ModmailMessageService, client: Client, message: Message, modmail: InstanceType<typeof Modmail>) {
+    private async ProcessModmailMessageToGuild(this: ModmailMessageService, message: Message, modmail: InstanceType<typeof Modmail>) {
         
         // Get the active modmail webhook
-        const webhook = await client.fetchWebhook(modmail.webhooksnowflake?.toString() ?? "0");
+        const webhook = await Arc3.Arc3.clientInstance.fetchWebhook(modmail.webhooksnowflake?.toString() ?? "0");
         const { text } = useTextContent(Locale.EN).actions;
-        
-        SendAttachmentsAndMessageToWebhook(message, webhook)
-        .then(async () => {
 
+        SendAttachmentsAndMessageToWebhook(message, webhook)
+        .then(async (webhookMessageID) => {
+
+            if (webhookMessageID)
+                this.modmailRepo.addRecentMessage(message.id, webhookMessageID)
 
             await message.react(text('arc.modmail.delivery.emoji.delivered'));
-            CreateTranscript(
+            await this.modmailRepo.CreateTranscript(
                 modmail, 
                 message.author.id, 
                 message.attachments.map(x => x.proxyURL ), 
@@ -92,7 +180,8 @@ export class ModmailMessageService {
                 message.content, 
                 message.guildId?? "0", 
                 "Modmail", 
-                false
+                false,
+                message.id
             );
 
         }).catch(async (e) => {
