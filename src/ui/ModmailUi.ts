@@ -93,9 +93,11 @@ export function ModmailMenuEmbed( userId: string, modmailId: string | undefined)
 
 export function ModmailFailedEmbed() {
 
+    const { text } = useTextContent(Locale.EN).actions;
+
     const embedStrings = {
-        title: "Modmail Failed",
-        description: "Your modmail failed to create. Please try again later.",
+        title: text('arc.modmail.failed.title'),
+        description: text('arc.modmail.failed.description')
     }
 
     return new EmbedBuilder()
@@ -104,3 +106,23 @@ export function ModmailFailedEmbed() {
         .setColor("Red");
 }
 
+export function ModmailTranscriptEmbed(userSnowflake: string, savedBySnowflake: string, transcriptUrl:string, savedAt: Date = new Date()) {
+
+    const clientUser = Arc3.Arc3.clientInstance.user;
+    const { text } = useTextContent(Locale.EN).actions;
+
+    const embedStrings = {
+        title: text('arc.modmail.transcript.title'),
+        description: text('arc.modmail.transcript.description', userSnowflake, savedAt.getTime().toString(), savedBySnowflake, transcriptUrl),
+        footer: text('arc.modmail.menu.footer', Arc3.Arc3.clientVersion),
+    }
+
+    return new EmbedBuilder()
+        .setTitle(embedStrings.title)
+        .setDescription(embedStrings.description)
+        .setFooter({
+            iconURL: clientUser?.avatarURL() ?? undefined,
+            text: embedStrings.footer
+        });
+
+}
