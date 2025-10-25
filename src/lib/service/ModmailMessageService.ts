@@ -6,6 +6,7 @@ import { Client } from "discordx";
 import { SendAttachmentsAndMessageToWebhook, SendModmailSelectMenu } from "../util/ModmailUtils.js";
 import { Locale, useTextContent } from "../hooks/useTextContent.js";
 import { Message } from "discord.js";
+import { CreateTranscript } from "../util/TranscriptUtils";
 
 
 export class ModmailMessageService {
@@ -80,7 +81,20 @@ export class ModmailMessageService {
         
         SendAttachmentsAndMessageToWebhook(message, webhook)
         .then(async () => {
+
+
             await message.react(text('arc.modmail.delivery.emoji.delivered'));
+            CreateTranscript(
+                modmail, 
+                message.author.id, 
+                message.attachments.map(x => x.proxyURL ), 
+                message.createdAt, 
+                message.content, 
+                message.guildId?? "0", 
+                "Modmail", 
+                false
+            );
+
         }).catch(async (e) => {
             this.logger.error(e, "Error sending message in modmail: " + modmail._id?.toString())
             await message.react(text('arc.modmail.delivery.emoji.failed'));
