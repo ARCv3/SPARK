@@ -6,7 +6,6 @@ import mongoose from "mongoose";
 import { Logger } from "./logger/index.js";
 import { default as GuildInfo } from "./schema/v1/Guild.js";
 import mongooseLong from 'mongoose-long'
-import * as packageJson from '../../package.json' with { type: 'json'};
 
 mongooseLong(mongoose);
 const { Types: { Long, ObjectId} } = mongoose;
@@ -19,7 +18,7 @@ export namespace Arc3 {
     public static clientInstance : Client;
     private readonly clientInstance : Client;
     public static readonly clientLogger = new Logger("SPARK", 'debug');
-    public static readonly clientVersion = packageJson.version;
+    public static readonly clientVersion = "0.0.1";
 
     /**
      * Creates a new instance of the Arc3 class.
@@ -37,11 +36,22 @@ export namespace Arc3 {
         // Discord intents
         intents: [
           IntentsBitField.Flags.Guilds,
-          IntentsBitField.Flags.GuildMembers,
           IntentsBitField.Flags.GuildMessages,
+          IntentsBitField.Flags.GuildMembers,
+          IntentsBitField.Flags.DirectMessages, 
+          IntentsBitField.Flags.MessageContent,
           IntentsBitField.Flags.GuildMessageReactions,
+          IntentsBitField.Flags.GuildPresences,
+          IntentsBitField.Flags.GuildInvites,
+          IntentsBitField.Flags.GuildModeration,
+          IntentsBitField.Flags.GuildScheduledEvents,
+          IntentsBitField.Flags.GuildWebhooks,
+          IntentsBitField.Flags.GuildIntegrations,
+          IntentsBitField.Flags.GuildExpressions,
+          IntentsBitField.Flags.GuildMessageTyping,
+          IntentsBitField.Flags.DirectMessageReactions,
+          IntentsBitField.Flags.DirectMessageTyping,
           IntentsBitField.Flags.GuildVoiceStates,
-          IntentsBitField.Flags.DirectMessages,
         ],
 
         // Debug logs are disabled in silent mode
@@ -110,7 +120,7 @@ export namespace Arc3 {
       mongoose
         .connect(process.env.MONGODB_URI?? "none")
         .then( _ => {
-          Arc3.clientLogger.info("Connected to database!");
+          Arc3.clientLogger.info("Connected to database!", process.env.MONGODB_URI);
         })
         .catch( e => Arc3.clientLogger.error("Error connecting to MongoDB") );
 

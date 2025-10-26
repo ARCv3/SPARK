@@ -126,3 +126,26 @@ export function ModmailTranscriptEmbed(userSnowflake: string, savedBySnowflake: 
         });
 
 }
+
+export function ModmailModeratorMessageEmbed(authorName: string, authorAvatarUrl: string, content: string) {
+
+    const clientUser = Arc3.Arc3.clientInstance.user;
+    const { text } = useTextContent(Locale.EN).actions;
+
+    const embedStrings = {
+        footer: text('arc.modmail.menu.footer', Arc3.Arc3.clientVersion)
+    }
+
+    return new EmbedBuilder()
+        .setAuthor({
+            name: authorName,
+            iconURL: authorAvatarUrl
+        })
+        .setDescription(content)
+        .setFooter({
+            iconURL: clientUser?.avatarURL() ?? undefined,
+            text: embedStrings.footer
+        })
+        .setTimestamp(new Date())
+        .setColor(0x5865F2);
+}

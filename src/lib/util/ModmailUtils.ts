@@ -19,7 +19,7 @@ import Modmail from "../schema/v1/Modmail.js";
 import { useGuildConfig } from "../hooks/useGuildConfig.js";
 import { Locale, useTextContent } from "../hooks/useTextContent.js";
 import { CreateTextChannel, CreateWebhook } from "./DiscordUtils.js";
-import { ModmailFailedEmbed, ModmailMenuEmbed, ModmailTranscriptEmbed } from "../../ui/ModmailUi.js";
+import { ModmailFailedEmbed, ModmailMenuEmbed, ModmailModeratorMessageEmbed, ModmailTranscriptEmbed } from "../../ui/ModmailUi.js";
 
 import mongoose from 'mongoose';
 import mongooseLong from 'mongoose-long'
@@ -159,6 +159,35 @@ export async function SendAttachmentsAndMessageToWebhook(message: Message, webho
     }
 
 }
+
+export async function SendAttachmentsAndMessageToUser(message: Message, user: User) {
+
+    if (message.attachments.size > 0) {
+        for (const attachment of message.attachments.values()) {
+        
+            const embedWithImage = ModmailModeratorMessageEmbed(
+                message.author.username,
+                message.author.displayAvatarURL(),
+                ""
+            ).setImage(attachment.proxyURL);
+            
+            await user.send({ embeds: [embedWithImage] });
+        }
+    }
+    
+    if (message.content) {
+        const embed = ModmailModeratorMessageEmbed(
+            message.author.username,
+            message.author.displayAvatarURL(),
+            message.content
+        );
+        
+        const sentMessage = await user.send({ embeds: [embed] });
+        return sentMessage.id;
+    }
+
+}
+
 
 /**
  * Sends a modmail select menu to the user.

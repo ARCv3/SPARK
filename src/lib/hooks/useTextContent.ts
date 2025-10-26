@@ -91,4 +91,7 @@ export interface Translations {
     'arc.modmail.transcript.title': string; // Modmail Transcript
     'arc.modmail.transcript.description': string; // **Modmail with:** <@{0}>\n**Saved** <t:{1}:R> **by** <@{2}>\n\n[Transcript]({3})
 
+    // Modmail - Moderator Messages
+    'arc.modmail.moderator.image': string; // Image:
+
 }
