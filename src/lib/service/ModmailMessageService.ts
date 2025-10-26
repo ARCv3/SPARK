@@ -290,9 +290,8 @@ export class ModmailMessageService {
         SendAttachmentsAndMessageToUser(message, user)
         .then( async ( userMessageId ) => {
 
-            if (userMessageId) {
+            if (userMessageId)
                 this.modmailRepo.addRecentMessage(message.id, userMessageId);
-            }
 
             await message.react(text('arc.modmail.delivery.emoji.delivered'));
             await this.modmailRepo.CreateTranscript(
