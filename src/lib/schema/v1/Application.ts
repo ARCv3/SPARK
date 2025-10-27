@@ -1,4 +1,4 @@
-const mongoose = require('mongoose');
+import mongoose from 'mongoose';
 
 const ApplicationSchema = new mongoose.Schema({
   guildSnowflake: String,
@@ -13,8 +13,8 @@ const ApplicationSchema = new mongoose.Schema({
   about: String,
   age: String,
   joindate: String
-})
+});
 
 const Application = mongoose.model('Application', ApplicationSchema);
 
-module.exports = Application;
+export default Application;

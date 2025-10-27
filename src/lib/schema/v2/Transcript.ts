@@ -1,4 +1,4 @@
-const mongoose = require('mongoose');
+import mongoose from 'mongoose';
 
 const TranscriptSchema = new mongoose.Schema({
 
@@ -9,9 +9,12 @@ const TranscriptSchema = new mongoose.Schema({
   GuildSnowflake: String,
   messagecontent: String,
   transcripttype: String,
-  comment: Boolean
+  comment: Boolean,
+  messageid: String
+}, {
+  collection: "transcripts"
 });
 
 const Transcript = mongoose.model('Transcript', TranscriptSchema);
 
-module.exports = Transcript;
+export default Transcript;

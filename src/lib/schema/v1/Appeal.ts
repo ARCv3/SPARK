@@ -1,4 +1,4 @@
-const mongoose = require('mongoose');
+import mongoose from 'mongoose';
 
 const AppealSchema = new mongoose.Schema({
     _id: String,
@@ -11,4 +11,4 @@ const AppealSchema = new mongoose.Schema({
 
 const Appeal = mongoose.model('Appeal', AppealSchema);
 
-module.exports = Appeal;
+export default Appeal;

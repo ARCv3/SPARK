@@ -1,4 +1,4 @@
-const mongoose = require('mongoose');
+import mongoose from 'mongoose';
 
 const commandStatSchema = new mongoose.Schema({
     _id: String,
@@ -11,4 +11,4 @@ const commandStatSchema = new mongoose.Schema({
 
 const CommandStat = mongoose.model("Commandstat", commandStatSchema);
 
-module.exports = CommandStat;
+export default CommandStat;
